@@ -134,6 +134,8 @@ Comportamiento propuesto:
 
 **D9 (2026-11-15)**: una respuesta vigente por categoría, con versiones sucesivas, ID estable y campo `variante` opcional. Categorías de hechos y narrativas, y lista de preguntas que exigen respuesta nueva, en `decisiones.md`. Sin respuesta confirmada, la postulación queda en cola de aprobación, incluso al 100 %.
 
+**Enmienda de B5 (2026-11-19)**: (1) variantes por familia de cargo: se usa la variante de la familia de la vacante y, si no existe, la general. (2) El agente puede guardar y usar solo una respuesta armada únicamente con datos confirmados del perfil: queda como versión `agente` con su fuente y pendiente de revisión del usuario, que la aprueba, edita o rechaza. Sin respaldo en el perfil, o si es de las que exigen respuesta nueva, sigue pausando. Implementado en `agente0/respuestas.py` y la skill `editar_respuestas`.
+
 ---
 
 ## 5. Subflujo de postulación
@@ -303,7 +305,8 @@ $AGENTE0_DATOS/
     recordatorios.json             (B10)
   empleos/empleos.csv              (B6: potenciales; columna postulacion_id)
   cv/base/<fecha>/                 (B3: .tex, PDF ATS y visual, limites.json, auditoría de veracidad)
-  respuestas/<categoria>/v001_<fecha>.md
+  respuestas/<categoria>/v001_<fecha>.md              (B5: versión general, inmutable; la variante por familia de cargo va en <categoria>/<variante>/)
+  respuestas/revisiones.jsonl                        (B5: append-only, revisión del usuario de las versiones que guardó el agente)
   postulaciones/<id>/              (B4)
     postulacion.json               (estado actual)
     eventos.jsonl                  (append-only, incluye recompensas)
@@ -344,7 +347,7 @@ Las 18 decisiones de la Fase 1 están cerradas (2026-11-15). Cada una se present
 - Autonomía (D12, 2026-11-15): niveles fijos 0, 25, 50, 75 y 100 %, con condiciones de auto-envío al 75 %, reglas siempre vigentes, excepciones y tope de nivel por portal, límites diarios por riesgo, vista previa y aviso antes de activar 100 %.
 - Priorización (D11, 2026-11-15): puntaje ponderado con los ejes "quiero" y "tengo" siempre visibles por separado, filtros excluyentes antes de puntuar y estabilidad por evidencia; el umbral de match de autonomía se define por eje.
 - Fuentes de empleos y periodicidad (D10, 2026-11-15): búsqueda web primero y navegador solo para portales que lo exigen y para verificar vigencia; lista por usuario y país; a demanda; vigencia en la fuente oficial.
-- Respuestas tipo (D9, 2026-11-15): una respuesta vigente por categoría con versiones sucesivas; categorías de hechos y narrativas; preguntas que exigen respuesta nueva; sin respuesta confirmada, cola de aprobación incluso al 100 %.
+- Respuestas tipo (D9, 2026-11-15): una respuesta vigente por categoría con versiones sucesivas; categorías de hechos y narrativas; preguntas que exigen respuesta nueva; sin respuesta confirmada, cola de aprobación incluso al 100 %. Enmendada en B5: variantes por familia de cargo y guardado por el agente cuando el perfil respalda la respuesta.
 - Carta de presentación (D8, 2026-11-15): solo cuando el formulario la exige o el usuario la pide; no es parte del paso 0. Mismas reglas de veracidad y compuerta de autonomía que el CV.
 - Formato de CV (D7, 2026-11-15): LaTeX como maestro con dos salidas a PDF (visual y ATS de una columna), variantes por vacante con render revisado, versiones en carpetas con fecha y auditoría de veracidad antes de cada envío. DOCX solo si un canal lo exige. Requiere instalar XeLaTeX (B3).
 - Onboarding (D6, 2026-11-15): modo general por preguntas (banco en `docs/onboarding.md`), modo con documentos para el usuario 1, solo entra al perfil lo confirmado, autonomía 0 % por defecto. La operación 1 pasa a "Actualizar perfil", con "Cuéntame" y "Pregúntame".

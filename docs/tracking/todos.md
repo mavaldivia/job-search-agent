@@ -24,8 +24,6 @@
 
 > Objetivo: la versión mínima que haga el flujo completo con un usuario, subiendo la autonomía de forma gradual, antes de abrir el agente a más personas. Cada ítem espera a las decisiones y confirmaciones de las que depende.
 
-- [ ] **B5 · Biblioteca de respuestas tipo operativa** [dep: B2, D9, U6]: Edición, versionado y recuperación de respuestas tipo, con la regla de pedir intervención cuando no hay respuesta confirmada. (I:9 C:3 H:8 → 2.83)
-  - Claude: implementar la biblioteca con la biblioteca aprobada en U6.
 - [ ] **B6 · Actualizar postulaciones potenciales** [dep: B4, D10, D11, D13]: Obtener vacantes de las fuentes definidas, revalidar vigencia, excluir las ya postuladas, ordenar con el criterio elegido y mostrar la tabla con los cambios respecto de la anterior. (I:9 C:5 H:8 → 1.70)
   - Claude: implementar la búsqueda, la revalidación y la priorización; sugerir portales que no estén en la lista del usuario cuando valgan la pena según su perfil, con el motivo, e invitarlo a crear la cuenta (el agente no la crea, D4).
   - Usuario: revisar el primer ranking y decidir sobre los portales sugeridos.
