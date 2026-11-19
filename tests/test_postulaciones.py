@@ -17,6 +17,7 @@ from agente0.postulaciones import (
     envio_fallido,
     finalizar,
     intentar_envio,
+    recompensar,
     registrar_evento,
 )
 
@@ -90,6 +91,7 @@ def test_flujo_completo_hasta_finalizar_con_historial_de_transiciones(tmp_path):
         "PREPARADA",
         "ENVIO_INTENTADO",
         "POSTULADO",
+        "EN_PROCESO",
         "EN_PROCESO",
         "EN_PROCESO",
         "EN_PROCESO",
@@ -168,7 +170,96 @@ def test_el_primer_contacto_no_se_registra_dos_veces(tmp_path):
 
     with pytest.raises(PostulacionError):
         registrar_evento(tmp_path, id_, "PRIMER_CONTACTO_ENTREVISTA")
-    assert len(_eventos(tmp_path, id_)) == 4
+    assert len(_eventos(tmp_path, id_)) == 5
+
+
+def _premios(raiz, id_):
+    return [e for e in _eventos(raiz, id_) if e["tipo"] == "RECOMPENSA"]
+
+
+def test_el_primer_contacto_crea_un_solo_premio_ligado_a_lo_enviado(tmp_path):
+    id_ = _postulada(tmp_path, tmp_path)
+
+    registrar_evento(tmp_path, id_, "PRIMER_CONTACTO_ENTREVISTA", "Correo de la reclutadora")
+
+    assert cargar(tmp_path, id_).estado == "EN_PROCESO"
+    assert [e["tipo"] for e in _eventos(tmp_path, id_)][-2:] == ["PRIMER_CONTACTO_ENTREVISTA", "RECOMPENSA"]
+    (premio,) = _premios(tmp_path, id_)
+    assert premio["recompensa"] == {
+        "hito": "PRIMER_CONTACTO_ENTREVISTA",
+        "valor": 1.0,
+        "intento": 1,
+        "respuestas": [{"respuesta_id": "H3", "version": "v002"}],
+    }
+
+
+def test_repetir_el_aviso_o_reprocesar_el_hito_no_duplica_el_premio(tmp_path):
+    id_ = _postulada(tmp_path, tmp_path)
+    registrar_evento(tmp_path, id_, "PRIMER_CONTACTO_ENTREVISTA")
+
+    with pytest.raises(PostulacionError):
+        registrar_evento(tmp_path, id_, "PRIMER_CONTACTO_ENTREVISTA")
+    premio = recompensar(tmp_path, id_)
+
+    assert premio.tipo == "RECOMPENSA"
+    assert len(_premios(tmp_path, id_)) == 1
+    assert len(_eventos(tmp_path, id_)) == 5
+
+
+def test_un_premio_que_quedo_sin_escribir_se_recupera_una_sola_vez(tmp_path):
+    id_ = _postulada(tmp_path, tmp_path)
+    registrar_evento(tmp_path, id_, "PRIMER_CONTACTO_ENTREVISTA")
+    archivo = tmp_path / "postulaciones" / id_ / "eventos.jsonl"
+    sin_premio = archivo.read_text(encoding="utf-8").splitlines()[:-1]
+    archivo.write_text("\n".join(sin_premio) + "\n", encoding="utf-8")
+    assert _premios(tmp_path, id_) == []
+
+    recompensar(tmp_path, id_)
+    recompensar(tmp_path, id_)
+
+    assert len(_premios(tmp_path, id_)) == 1
+
+
+def test_sin_primer_contacto_no_hay_premio(tmp_path):
+    id_ = _postulada(tmp_path, tmp_path)
+
+    with pytest.raises(PostulacionError, match="nada que premiar"):
+        recompensar(tmp_path, id_)
+    assert _premios(tmp_path, id_) == []
+
+
+def test_rechazo_y_silencio_no_generan_premio(tmp_path):
+    rechazada = _postulada(tmp_path, tmp_path)
+    registrar_evento(tmp_path, rechazada, "RECHAZO")
+    callada = crear(tmp_path, "Beta", "Analista", "https://portal.example.com/empleo/456").id
+    intentar_envio(tmp_path, callada, _envio(tmp_path))
+    confirmar_envio(tmp_path, callada, Evidencia(tipo="correo", detalle="Correo de confirmación"))
+    registrar_evento(tmp_path, callada, "CIERRE_POR_SILENCIO")
+
+    assert _premios(tmp_path, rechazada) == []
+    assert _premios(tmp_path, callada) == []
+
+
+def test_el_premio_liga_las_respuestas_del_intento_confirmado_y_no_las_de_otros(tmp_path):
+    id_ = crear(tmp_path, "Acme", "Jefe de Datos", URL).id
+    intentar_envio(tmp_path, id_, _envio(tmp_path))
+    envio_fallido(tmp_path, id_, "El portal no respondió")
+    segundo = _envio(tmp_path).model_copy(
+        update={
+            "respuestas": [
+                RespuestaEnviada(pregunta="Pretensión de renta", texto="Texto nuevo", respuesta_id="H3", version="v003"),
+                RespuestaEnviada(pregunta="Por qué te interesa", texto="Texto libre sin ID"),
+            ]
+        }
+    )
+    intentar_envio(tmp_path, id_, segundo)
+    confirmar_envio(tmp_path, id_, Evidencia(tipo="confirmacion_visible", detalle="folio 2"))
+
+    registrar_evento(tmp_path, id_, "PRIMER_CONTACTO_ENTREVISTA")
+
+    (premio,) = _premios(tmp_path, id_)
+    assert premio["recompensa"]["intento"] == 2
+    assert premio["recompensa"]["respuestas"] == [{"respuesta_id": "H3", "version": "v003"}]
 
 
 def test_eventos_que_no_corresponden_al_estado_se_rechazan(tmp_path):
@@ -250,6 +341,39 @@ def test_cli_recorre_el_flujo_y_rechaza_el_reenvio(tmp_path):
     assert json.loads(ver.stdout)["estado"] == "POSTULADO"
     assert reenvio.returncode == 1
     assert "POSTULADO" in reenvio.stderr
+
+
+def test_cli_premia_una_vez_con_el_valor_de_la_configuracion(tmp_path):
+    raiz = tmp_path / "datos"
+    raiz.mkdir()
+    assert _cli(raiz, "init").returncode == 0
+    configuracion = raiz / "configuracion" / "configuracion.json"
+    datos_config = json.loads(configuracion.read_text(encoding="utf-8"))
+    configuracion.write_text(json.dumps(datos_config | {"recompensa_primer_contacto": 2.5}), encoding="utf-8")
+    cv = tmp_path / "cv.pdf"
+    cv.write_bytes(b"pdf")
+    id_ = json.loads(
+        _cli(raiz, "postulacion", "crear", entrada=json.dumps({"empresa": "Acme", "cargo": "Jefe", "url": URL})).stdout
+    )["id"]
+    envio = {
+        "autonomia": 0,
+        "aprobacion": "usuario",
+        "cv": str(cv),
+        "respuestas": [{"pregunta": "Renta", "texto": "x", "respuesta_id": "H3", "version": "v001"}],
+    }
+    _cli(raiz, "postulacion", "intentar", id_, entrada=json.dumps(envio))
+    _cli(raiz, "postulacion", "confirmar", id_, entrada=json.dumps({"tipo": "correo", "detalle": "folio 1"}))
+
+    primero = _cli(raiz, "postulacion", "evento", id_, entrada='{"tipo": "PRIMER_CONTACTO_ENTREVISTA"}')
+    repetido = _cli(raiz, "postulacion", "evento", id_, entrada='{"tipo": "PRIMER_CONTACTO_ENTREVISTA"}')
+    reproceso = _cli(raiz, "postulacion", "recompensar", id_)
+
+    assert primero.returncode == 0, primero.stderr
+    assert repetido.returncode == 1
+    assert reproceso.returncode == 0, reproceso.stderr
+    (premio,) = _premios(raiz, id_)
+    assert premio["recompensa"]["valor"] == 2.5
+    assert json.loads(reproceso.stdout)["recompensa"]["valor"] == 2.5
 
 
 def test_cli_con_json_invalido_falla_y_no_escribe(tmp_path):

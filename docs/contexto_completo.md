@@ -106,6 +106,8 @@ Catálogo (D5, 2026-11-15; detalle en `decisiones.md`):
 - Sin retrocesos, salvo corrección registrada por el usuario; `ENVIO_INTENTADO` → `PREPARADA` solo si el envío falló sin enviarse.
 - Una oportunidad termina cuando el empleo pasa a `CERRADO` o `DESCARTADO`, o la postulación llega a `FINALIZADA`. El agente puede proponer cerrar por silencio, nunca cierra solo.
 
+**Implementado en B9** (`agente0/postulaciones.py`, CLI `postulacion evento | recompensar | finalizar` y la skill `actualizar_estado`; ver `decisiones.md`): el aviso de primer contacto cambia el estado y crea un solo evento `RECOMPENSA` con el intento confirmado y las respuestas realmente enviadas (ID y versión); repetir el aviso o reprocesar no duplica el premio.
+
 ### 4.4. Investigar mejoras del CV y actualizar el CV base `(*)`
 
 Esquema: investigar cómo preparar el CV para ATS y para elevar el éxito, y luego actualizar el CV base.
@@ -313,7 +315,7 @@ $AGENTE0_DATOS/
   respuestas/revisiones.jsonl                        (B5: append-only, revisión del usuario de las versiones que guardó el agente)
   postulaciones/<id>/              (B4)
     postulacion.json               (estado actual)
-    eventos.jsonl                  (append-only, incluye recompensas)
+    eventos.jsonl                  (append-only; B9: incluye el evento RECOMPENSA del primer contacto)
     cv/                            (CV adaptado)
     instantanea/<nnn>/             (B4, inmutable, una por intento de envío: cv.<ext>, envio.json con preguntas, respuestas literales, autonomía y aprobación; evidencia.json y captura al confirmar)
     estadisticas.json              (derivable, recalculable)

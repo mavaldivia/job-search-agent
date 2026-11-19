@@ -24,9 +24,6 @@
 
 > Objetivo: la versión mínima que haga el flujo completo con un usuario, subiendo la autonomía de forma gradual, antes de abrir el agente a más personas. Cada ítem espera a las decisiones y confirmaciones de las que depende.
 
-- [ ] **B9 · Actualizar estado y recompensa** [dep: B8, D16]: Cambio de estado con historial y un solo evento de recompensa por hito, ligado a las respuestas realmente enviadas. Probar con un contacto simulado y comprobar que repetir el aviso no duplica el premio. (I:8 C:4 H:7 → 1.87)
-  - Claude: implementar y probar.
-  - Usuario: informar el primer resultado real cuando ocurra.
 - [ ] **B10 · Recordatorios periódicos** [dep: B2, D15]: Preguntar cada `X` días si se actualiza experiencia, CV base o configuración, con opción de aceptar, posponer o descartar. (I:5 C:2 H:5 → 2.50)
   - Claude: implementar los recordatorios.
 - [ ] **B11 · Autonomía configurable** [dep: B8, D12, U4]: Implementar el nivel 0 a 100 %, la compuerta de aprobación y el registro de qué fue automático y qué aprobado. Probar al 25 % y al 75 % antes de ofrecer 100 %. Antes de cualquier envío automático, correr el primer ranking real y calibrar con él los umbrales (U4). Todos los parámetros (nivel, condiciones, umbrales por eje, renta mínima, límites por portal) viven en la configuración del usuario y se editan desde "Actualizar configuración", sin tocar código. (I:10 C:5 H:9 → 1.90)

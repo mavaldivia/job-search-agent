@@ -71,6 +71,7 @@ class Configuracion(BaseModel):
     autonomia: int = Field(default=0, ge=0, le=100)
     recordatorios_dias: RecordatoriosDias = Field(default_factory=RecordatoriosDias)
     posponer_dias: int = Field(default=7, gt=0)
+    recompensa_primer_contacto: float = Field(default=1.0, gt=0)
     priorizacion: Priorizacion = Field(default_factory=Priorizacion)
 
     @field_validator("autonomia")

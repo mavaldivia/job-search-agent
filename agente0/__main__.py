@@ -10,14 +10,14 @@ from agente0.revisiones import Revision, fecha_ultima_revision, registrar_revisi
 USO = (
     "uso: python -m agente0 init | configuracion ver | revision ultima | revision registrar (JSON por stdin)"
     " | cv calibrar <archivo.tex> <paginas> | cv verificar <archivo.tex> <limites.json>"
-    " | postulacion crear | postulacion ver|intentar|confirmar|fallido|evento|finalizar <id> (JSON por stdin salvo ver)"
+    " | postulacion crear | postulacion ver|intentar|confirmar|fallido|evento|recompensar|finalizar <id> (JSON por stdin salvo ver y recompensar)"
     " | respuestas listar|pendientes | respuestas ver|versiones <categoria> [<variante>]"
     " | respuestas guardar|revisar (JSON por stdin)"
     " | oportunidad registrar (JSON por stdin) | oportunidad listar [ESTADO] | oportunidad ver <id>"
     " | oportunidad evaluar|estado <id> (JSON por stdin)"
     " | ranking generar|ultimo | fuentes listar | fuentes guardar|agregar (JSON por stdin)"
 )
-ACCIONES_POSTULACION = ("crear", "ver", "intentar", "confirmar", "fallido", "evento", "finalizar")
+ACCIONES_POSTULACION = ("crear", "ver", "intentar", "confirmar", "fallido", "evento", "recompensar", "finalizar")
 
 
 def main(argv: list[str]) -> int:
@@ -69,6 +69,8 @@ def _postulacion(accion: str, resto: list[str]) -> int:
             raise ValueError("`crear` no lleva ID; las demás acciones sí.")
         if accion == "ver":
             resultado = postulaciones.cargar(raiz, resto[0])
+        elif accion == "recompensar":
+            resultado = postulaciones.recompensar(raiz, resto[0], cargar_configuracion(raiz).recompensa_primer_contacto)
         else:
             datos = json.loads(sys.stdin.read())
             if accion == "crear":
@@ -80,6 +82,8 @@ def _postulacion(accion: str, resto: list[str]) -> int:
             elif accion == "fallido":
                 resultado = postulaciones.envio_fallido(raiz, resto[0], **datos)
             elif accion == "evento":
+                if isinstance(datos, dict) and datos.get("tipo") == "PRIMER_CONTACTO_ENTREVISTA":
+                    datos["valor_recompensa"] = cargar_configuracion(raiz).recompensa_primer_contacto
                 resultado = postulaciones.registrar_evento(raiz, resto[0], **datos)
             else:
                 resultado = postulaciones.finalizar(raiz, resto[0], **datos)

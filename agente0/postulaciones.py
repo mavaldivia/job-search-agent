@@ -23,6 +23,7 @@ TipoEvento = Literal[
     "RECHAZO",
     "RETIRO",
     "CIERRE_POR_SILENCIO",
+    "RECOMPENSA",
 ]
 
 # D5: sin retrocesos; la única vuelta es ENVIO_INTENTADO -> PREPARADA si el envío falló sin enviarse (D14).
@@ -43,6 +44,8 @@ _EFECTOS: dict[str, tuple[str, dict[str, str]]] = {
 }
 _SOLO_REGISTRO = {"ENTREVISTA_REALIZADA", "OFERTA_RECIBIDA"}
 _ID = re.compile(r"[a-z0-9]+(-[a-z0-9]+)*")
+# D16: solo la primera entrevista puntúa. El valor vigente sale de la configuración; este es el inicial.
+PREMIO_PRIMER_CONTACTO = 1.0
 
 
 class PostulacionError(ValueError):
@@ -105,6 +108,22 @@ class Postulacion(BaseModel):
         return self
 
 
+class RespuestaPremiada(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    respuesta_id: str
+    version: str
+
+
+class Recompensa(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    hito: Literal["PRIMER_CONTACTO_ENTREVISTA"]
+    valor: float
+    intento: int
+    respuestas: list[RespuestaPremiada]
+
+
 class Evento(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -112,6 +131,7 @@ class Evento(BaseModel):
     tipo: TipoEvento
     estado: Estado
     detalle: str = ""
+    recompensa: Recompensa | None = None
 
 
 def _carpeta(raiz: Path, id_: str) -> Path:
@@ -207,7 +227,54 @@ def envio_fallido(raiz: Path, id_: str, detalle: str) -> Postulacion:
     return _mover(raiz, id_, "PREPARADA", "CAMBIO_ESTADO", detalle)
 
 
-def registrar_evento(raiz: Path, id_: str, tipo: str, detalle: str = "", etapa: str | None = None) -> Postulacion:
+def _eventos(raiz: Path, id_: str) -> list[Evento]:
+    lineas = (_carpeta(raiz, id_) / "eventos.jsonl").read_text(encoding="utf-8").splitlines()
+    return [Evento.model_validate_json(linea) for linea in lineas]
+
+
+def recompensar(raiz: Path, id_: str, valor: float = PREMIO_PRIMER_CONTACTO) -> Evento:
+    """Crea el evento de recompensa del primer contacto, ligado a lo realmente enviado (D16).
+
+    Idempotente: si el hito ya fue premiado devuelve ese evento y no escribe nada, así que repetir el aviso
+    o reprocesar el hito no duplica el premio. También recupera un premio que quedó sin escribir.
+    """
+    actual = cargar(raiz, id_)
+    eventos = _eventos(raiz, id_)
+    previo = next((e for e in eventos if e.tipo == "RECOMPENSA"), None)
+    if previo is not None:
+        return previo
+    if not any(e.tipo == "PRIMER_CONTACTO_ENTREVISTA" for e in eventos):
+        raise PostulacionError(f"{id_}: no hay primer contacto registrado, no hay nada que premiar.")
+    # Las respuestas premiadas salen de la instantánea del intento confirmado, no de la biblioteca: así son
+    # exactamente las que se enviaron, con la versión con que se enviaron.
+    enviado = Envio.model_validate_json(
+        (_carpeta(raiz, id_) / "instantanea" / f"{actual.intentos:03d}" / "envio.json").read_text(encoding="utf-8")
+    )
+    premiadas = [
+        RespuestaPremiada(respuesta_id=r.respuesta_id, version=r.version)
+        for r in enviado.respuestas
+        if r.respuesta_id and r.version
+    ]
+    evento = Evento(
+        tipo="RECOMPENSA",
+        estado=actual.estado,
+        detalle="PRIMER_CONTACTO_ENTREVISTA",
+        recompensa=Recompensa(
+            hito="PRIMER_CONTACTO_ENTREVISTA", valor=valor, intento=actual.intentos, respuestas=premiadas
+        ),
+    )
+    _guardar(_carpeta(raiz, id_), actual, evento)
+    return evento
+
+
+def registrar_evento(
+    raiz: Path,
+    id_: str,
+    tipo: str,
+    detalle: str = "",
+    etapa: str | None = None,
+    valor_recompensa: float = PREMIO_PRIMER_CONTACTO,
+) -> Postulacion:
     actual = cargar(raiz, id_)
     if tipo in _SOLO_REGISTRO:
         _exigir(actual, "EN_PROCESO")
@@ -223,7 +290,10 @@ def registrar_evento(raiz: Path, id_: str, tipo: str, detalle: str = "", etapa: 
             cambios = {"etapa": etapa}
     else:
         raise PostulacionError(f"tipo de evento no válido: {tipo!r}.")
-    return _mover(raiz, id_, estado, tipo, detalle, **cambios)
+    postulacion = _mover(raiz, id_, estado, tipo, detalle, **cambios)
+    if tipo == "PRIMER_CONTACTO_ENTREVISTA":
+        recompensar(raiz, id_, valor_recompensa)
+    return postulacion
 
 
 def finalizar(raiz: Path, id_: str, resultado: str, detalle: str = "") -> Postulacion:
