@@ -166,7 +166,7 @@ Solo con evidencia suficiente de que el envío ocurrió. Si hubo error o falta c
 
 Campos propuestos: identificador, empresa, cargo, enlace, descripción (requisitos y responsabilidades), prioridad, fecha de postulación, estado, CV utilizado, **respuestas utilizadas** (texto exacto, pregunta, identificador y versión), evidencia (número de confirmación, captura, mensaje), historial, feedback de resultados, observaciones, y el nivel de autonomía y la aprobación bajo los que se ejecutó.
 
-La postulación conserva una **instantánea histórica** de lo enviado, aunque después cambien el CV base o las respuestas tipo.
+La postulación conserva una **instantánea histórica** de lo enviado, aunque después cambien el CV base o las respuestas tipo. Implementado en B4 (`agente0/postulaciones.py`, ver `decisiones.md`): una instantánea por intento de envío; las postulaciones previas del usuario 1 no se cargan.
 
 ### 5.6. Repetición
 
@@ -308,7 +308,7 @@ $AGENTE0_DATOS/
     postulacion.json               (estado actual)
     eventos.jsonl                  (append-only, incluye recompensas)
     cv/                            (CV adaptado)
-    instantanea/                   (inmutable: CV, preguntas, respuestas literales, evidencia)
+    instantanea/<nnn>/             (B4, inmutable, una por intento de envío: cv.<ext>, envio.json con preguntas, respuestas literales, autonomía y aprobación; evidencia.json y captura al confirmar)
     estadisticas.json              (derivable, recalculable)
   origen/                          (material de partida del onboarding, no confirmado)
   respaldos/                       (copias de seguridad que el usuario quiera guardar)

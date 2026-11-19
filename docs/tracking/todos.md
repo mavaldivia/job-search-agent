@@ -24,9 +24,6 @@
 
 > Objetivo: la versión mínima que haga el flujo completo con un usuario, subiendo la autonomía de forma gradual, antes de abrir el agente a más personas. Cada ítem espera a las decisiones y confirmaciones de las que depende.
 
-- [ ] **B4 · Registro de postulaciones, estados y detalle** [dep: B1, D5, D14]: Registro con instantáneas inmutables (CV, preguntas, respuestas literales, evidencia, nivel de autonomía) e historial de transiciones. Cargar el historial del usuario 1 (`$AGENTE0_DATOS/origen/` (material de partida) §9) como postulaciones ya hechas. (I:9 C:4 H:9 → 2.25)
-  - Claude: implementar el registro y la carga inicial.
-  - Usuario: revisar la carga del historial.
 - [ ] **B5 · Biblioteca de respuestas tipo operativa** [dep: B2, D9, U6]: Edición, versionado y recuperación de respuestas tipo, con la regla de pedir intervención cuando no hay respuesta confirmada. (I:9 C:3 H:8 → 2.83)
   - Claude: implementar la biblioteca con la biblioteca aprobada en U6.
 - [ ] **B6 · Actualizar postulaciones potenciales** [dep: B4, D10, D11, D13]: Obtener vacantes de las fuentes definidas, revalidar vigencia, excluir las ya postuladas, ordenar con el criterio elegido y mostrar la tabla con los cambios respecto de la anterior. (I:9 C:5 H:8 → 1.70)
