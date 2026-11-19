@@ -24,9 +24,6 @@
 
 > Objetivo: la versión mínima que haga el flujo completo con un usuario, subiendo la autonomía de forma gradual, antes de abrir el agente a más personas. Cada ítem espera a las decisiones y confirmaciones de las que depende.
 
-- [ ] **B6 · Actualizar postulaciones potenciales** [dep: B4, D10, D11, D13]: Obtener vacantes de las fuentes definidas, revalidar vigencia, excluir las ya postuladas, ordenar con el criterio elegido y mostrar la tabla con los cambios respecto de la anterior. (I:9 C:5 H:8 → 1.70)
-  - Claude: implementar la búsqueda, la revalidación y la priorización; sugerir portales que no estén en la lista del usuario cuando valgan la pena según su perfil, con el motivo, e invitarlo a crear la cuenta (el agente no la crea, D4).
-  - Usuario: revisar el primer ranking y decidir sobre los portales sugeridos.
 - [ ] **B7 · Adaptación de CV por vacante (paso 0)** [dep: B3, B6]: Adaptar el CV base a una vacante con control de veracidad y un resumen de cambios y brechas. Probar con tres vacantes reales. (I:9 C:4 H:8 → 2.12)
   - Claude: adaptar dentro de los límites por bloque de B3, compilar, revisar el render y auditar las afirmaciones; subagente revisor solo si la autonomía es 75 % o más.
   - Usuario: aprobar las tres adaptaciones.
@@ -38,7 +35,7 @@
   - Usuario: informar el primer resultado real cuando ocurra.
 - [ ] **B10 · Recordatorios periódicos** [dep: B2, D15]: Preguntar cada `X` días si se actualiza experiencia, CV base o configuración, con opción de aceptar, posponer o descartar. (I:5 C:2 H:5 → 2.50)
   - Claude: implementar los recordatorios.
-- [ ] **B11 · Autonomía configurable** [dep: B8, D12, U4]: Implementar el nivel 0 a 100 %, la compuerta de aprobación y el registro de qué fue automático y qué aprobado. Probar al 25 % y al 75 % antes de ofrecer 100 %. Todos los parámetros (nivel, condiciones, umbrales por eje, renta mínima, límites por portal) viven en la configuración del usuario y se editan desde "Actualizar configuración", sin tocar código. (I:10 C:5 H:9 → 1.90)
+- [ ] **B11 · Autonomía configurable** [dep: B8, D12, U4]: Implementar el nivel 0 a 100 %, la compuerta de aprobación y el registro de qué fue automático y qué aprobado. Probar al 25 % y al 75 % antes de ofrecer 100 %. Antes de cualquier envío automático, correr el primer ranking real y calibrar con él los umbrales (U4). Todos los parámetros (nivel, condiciones, umbrales por eje, renta mínima, límites por portal) viven en la configuración del usuario y se editan desde "Actualizar configuración", sin tocar código. (I:10 C:5 H:9 → 1.90)
   - Claude: implementar y probar cada nivel.
   - Usuario: probar los niveles.
 - [ ] **B16 · Simulación de configuración** [dep: B6, B11]: Función "¿y si...?" sobre el último ranking: al cambiar umbrales, renta mínima, pesos o nivel, mostrar qué vacantes pasarían a cumplir o dejarían de cumplir las condiciones de auto-envío y cuáles irían a la cola de aprobación, sin modificar la configuración vigente. Pedido por el usuario 1 en U4. (I:6 C:3 H:7 → 2.16)

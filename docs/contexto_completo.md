@@ -84,6 +84,8 @@ Recuperar la lista vigente; incorporar oportunidades nuevas y actualizar las exi
 
 **Inicio de postulaciones (D13, 2026-11-15)**: al terminar de mostrar el ranking, el subflujo parte solo con las vacantes del Top 10 en estado `POTENCIAL`, de mayor a menor puntaje y hasta el límite diario del portal, de a una. Al 0 % se confirma el inicio de cada vacante; desde el 25 % el agente prepara solo y el nivel (D12) decide qué se aprueba. El usuario puede saltar o descartar una vacante. Detalle en `decisiones.md`.
 
+**Implementado en B6** (`agente0/oportunidades.py`, `ranking.py`, `fuentes.py` y la skill `actualizar_postulaciones_potenciales`; ver `decisiones.md`): una carpeta por vacante con estado, evidencia y eventos; puntaje que no cambia mientras no cambie el texto de la publicación; Top con la última lista como base; fuentes del usuario en `perfil/fuentes.json`. La operación termina en el ranking: el subflujo de D13 llega con B7 y B8.
+
 ### 4.3. Actualizar el estado de una postulación
 
 Esquema: actualizar el estado cuando algo cambia (ejemplo: "pasé a la siguiente entrevista"). Confirmado: un hito positivo produce **dos efectos**, uno operativo y uno de aprendizaje (§6).
@@ -301,9 +303,11 @@ $AGENTE0_DATOS/
     diario.md                      (B15: diario de vida laboral; contexto fechado que no entra al CV ni a formularios salvo que el usuario lo promueva a perfil.md)
     revisiones_perfil.jsonl        (B15: append-only, una línea por revisión de "Actualizar perfil"; su última fecha es el reloj del recordatorio de experiencia)
   configuracion/
-    configuracion.json             (autonomía, X de recordatorios, posponer; después umbrales y límites por portal)
+    configuracion.json             (autonomía, X de recordatorios, posponer y el bloque `priorizacion` de B6: pesos, umbrales, Top, ventana, filtros; después límites por portal)
     recordatorios.json             (B10)
-  empleos/empleos.csv              (B6: potenciales; columna postulacion_id)
+  perfil/fuentes.json              (B6: fuentes de búsqueda del usuario con método, riesgo y si está activa)
+  oportunidades/<id>/              (B6: oportunidad.json con estado, vigencia y evaluación; eventos.jsonl; publicacion.txt con el texto literal puntuado; mismo ID que la postulación)
+  ranking/<fecha-hora>.json        (B6: una lista por corrida; la última es la base de la siguiente)
   cv/base/<fecha>/                 (B3: .tex, PDF ATS y visual, limites.json, auditoría de veracidad)
   respuestas/<categoria>/v001_<fecha>.md              (B5: versión general, inmutable; la variante por familia de cargo va en <categoria>/<variante>/)
   respuestas/revisiones.jsonl                        (B5: append-only, revisión del usuario de las versiones que guardó el agente)
@@ -345,7 +349,7 @@ Las 18 decisiones de la Fase 1 están cerradas (2026-11-15). Cada una se present
 - Errores y reintentos (D14, 2026-11-15): la confirmación visible del sitio basta para `POSTULADO`; sin ella, `ENVIO_INTENTADO` y verificación en el portal o el correo antes de reintentar; mismo ID por reintento y nunca reenviar sin verificar.
 - Inicio de postulaciones (D13, 2026-11-15): el subflujo parte solo tras el ranking según el nivel de autonomía, con el Top 10 en orden de puntaje y hasta el límite diario; el usuario puede saltar o descartar vacantes. Sin selección previa obligatoria.
 - Autonomía (D12, 2026-11-15): niveles fijos 0, 25, 50, 75 y 100 %, con condiciones de auto-envío al 75 %, reglas siempre vigentes, excepciones y tope de nivel por portal, límites diarios por riesgo, vista previa y aviso antes de activar 100 %.
-- Priorización (D11, 2026-11-15): puntaje ponderado con los ejes "quiero" y "tengo" siempre visibles por separado, filtros excluyentes antes de puntuar y estabilidad por evidencia; el umbral de match de autonomía se define por eje.
+- Priorización (D11, 2026-11-15): puntaje ponderado con los ejes "quiero" y "tengo" siempre visibles por separado, filtros excluyentes antes de puntuar y estabilidad por evidencia; el umbral de match de autonomía se define por eje. Implementada en B6: el puntaje se conserva mientras no cambie el texto de la publicación y un empate lo gana quien ya estaba en el Top.
 - Fuentes de empleos y periodicidad (D10, 2026-11-15): búsqueda web primero y navegador solo para portales que lo exigen y para verificar vigencia; lista por usuario y país; a demanda; vigencia en la fuente oficial.
 - Respuestas tipo (D9, 2026-11-15): una respuesta vigente por categoría con versiones sucesivas; categorías de hechos y narrativas; preguntas que exigen respuesta nueva; sin respuesta confirmada, cola de aprobación incluso al 100 %. Enmendada en B5: variantes por familia de cargo y guardado por el agente cuando el perfil respalda la respuesta.
 - Carta de presentación (D8, 2026-11-15): solo cuando el formulario la exige o el usuario la pide; no es parte del paso 0. Mismas reglas de veracidad y compuerta de autonomía que el CV.

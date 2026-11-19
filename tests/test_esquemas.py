@@ -20,3 +20,43 @@ def test_valores_por_defecto_son_los_de_d15():
     assert configuracion.autonomia == 0
     assert configuracion.recordatorios_dias.model_dump() == {"experiencia": 15, "cv_base": 30, "configuracion": 60}
     assert configuracion.posponer_dias == 7
+
+
+def test_priorizacion_parte_con_los_valores_de_d11_y_u4():
+    p = Configuracion().priorizacion
+    peso_por_eje = {eje: sum(c.peso for c in p.criterios.values() if c.eje == eje) for eje in ("tengo", "quiero")}
+    assert peso_por_eje == {"tengo": 55, "quiero": 45}
+    assert (p.umbrales.tengo, p.umbrales.quiero) == (70, 60)
+    assert (p.top, p.ventana_dias, p.renta_minima, p.empresas_excluidas) == (10, 30, None, [])
+    assert len(p.filtros_activos) == 6
+
+
+def test_configuracion_sin_bloque_de_priorizacion_carga_con_los_valores_iniciales():
+    assert Configuracion.model_validate_json('{"autonomia": 25}').priorizacion == Configuracion().priorizacion
+
+
+def test_priorizacion_editada_a_mano_sobrevive_al_ciclo_json():
+    cruda = Configuracion().model_dump(mode="json")
+    cruda["priorizacion"]["top"] = 5
+    cruda["priorizacion"]["criterios"]["remuneracion"]["peso"] = 25
+    cruda["priorizacion"]["renta_minima"] = 3_000_000
+
+    p = Configuracion.model_validate(cruda).priorizacion
+
+    assert (p.top, p.criterios["remuneracion"].peso, p.renta_minima) == (5, 25, 3_000_000)
+
+
+@pytest.mark.parametrize(
+    "cambio",
+    [
+        {"criterios": {"solo_tengo": {"eje": "tengo", "peso": 10}}},
+        {"criterios": {"x": {"eje": "otro", "peso": 10}, "y": {"eje": "quiero", "peso": 10}}},
+        {"criterios": {"a": {"eje": "tengo", "peso": 0}, "b": {"eje": "quiero", "peso": 10}}},
+        {"filtros_activos": ["inventado"]},
+        {"top": 0},
+        {"topp": 5},
+    ],
+)
+def test_priorizacion_invalida_se_rechaza(cambio):
+    with pytest.raises(ValidationError):
+        Configuracion.model_validate({"priorizacion": cambio})

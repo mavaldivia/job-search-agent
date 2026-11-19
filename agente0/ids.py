@@ -11,6 +11,10 @@ def _slug(texto: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", ascii_.lower()).strip("-")[:30].strip("-")
 
 
+def slug_empresa(empresa: str) -> str:
+    return _slug(empresa)
+
+
 def _url_canonica(url: str) -> str:
     partes = urlsplit(url.strip())
     consulta = sorted(

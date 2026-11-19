@@ -4,7 +4,17 @@ from pathlib import Path
 from agente0.esquemas import Configuracion
 
 ENV_VAR = "AGENTE0_DATOS"
-DIRECTORIOS = ("perfil", "configuracion", "cv/base", "respuestas", "postulaciones", "origen", "respaldos")
+DIRECTORIOS = (
+    "perfil",
+    "configuracion",
+    "cv/base",
+    "respuestas",
+    "oportunidades",
+    "ranking",
+    "postulaciones",
+    "origen",
+    "respaldos",
+)
 ARCHIVO_CONFIGURACION = "configuracion/configuracion.json"
 REPO = Path(__file__).resolve().parent.parent
 
