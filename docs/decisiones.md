@@ -1,0 +1,293 @@
+# Decisiones — Agente0
+
+Formato: qué se eligió, qué se descartó, por qué. No volver a proponer lo descartado sin un motivo nuevo.
+
+## 2026-11-18 — B3: tamaño de los CV por bloque y quién los revisa
+
+- **Elegido**: (1) El CV base y los adaptados por rol mantienen el tamaño: cada plantilla declara límites por bloque (titular, perfil, bullets por cargo, habilidades) en caracteres y líneas, calibrados en B3 con el render real del CV base; tamaño de fuente y márgenes quedan fijos. (2) Verificación automática (script, sin IA) antes y después de compilar: caracteres por bloque contra su límite, número de páginas esperado, sin desborde ni texto cortado, extracción de texto en orden. Si algo excede, se reescribe el texto; nunca se reduce la letra. Además se revisa el PNG para legibilidad y estética. (3) Auditoría de veracidad de cada afirmación contra `perfil.md` en cada versión. (4) Subagente revisor independiente: una vez sobre el CV base, y sobre un CV adaptado solo si la autonomía vigente es 75 % o más (cuando el usuario no lo ve antes del envío). B7 usa los mismos límites sin recalibrar. (5) `docs/investigacion_cv_ats.md` es un documento vivo de buenas prácticas, con fecha de última actualización, fuentes con fecha de verificación y registro de cambios; se actualiza cada vez que se requiera y se crea si no existe. Su actualización cuenta como la mitad "investigar mejoras para ATS" de la operación 4 y usa el reloj de CV base de D15 (30 días). (6) La actualización es la skill `investigar_cv` del repo (`.claude/skills/investigar_cv/SKILL.md`, genérica y sin datos de usuario): la sugiere el agente al abrir el menú cuando pasan 30 días sin uso (D15, el usuario acepta, pospone o descarta; no la pide el usuario) y al ejecutarse reinicia el reloj de CV base.
+- **Descartado**: solo compilar y revisar el render sin límites declarados (el tamaño varía entre versiones y depende del ojo en cada adaptación); un subagente revisor en cada adaptación (costo sin aporte cuando el usuario aprueba el CV); actualizar el md de investigación solo por convención, con un prompt armado a mano (el procedimiento no queda en el repo).
+- **Por qué**: el posicionamiento absoluto de la versión visual se rompe con frases largas (D7) y la versión ATS debe mantener su largo de página; un límite medible lo detecta antes de enviar y deja el mismo resultado en cada variante.
+- **Consecuencias**: hay un archivo de límites por plantilla y un script de verificación con pruebas, que se construyen en B3, y la skill `investigar_cv`. B10 debe registrar la fecha de cada ejecución de esa skill en el reloj de CV base.
+- **Condición para reabrir**: que los límites resulten demasiado estrechos para adaptar roles distintos, o que el revisor independiente no encuentre nada en varias corridas.
+
+## 2026-11-18 — B15: Actualizar perfil, dónde se guarda cada revisión
+
+- **Elegido**: (1) La operación vive como skill del repo en `.claude/skills/actualizar_perfil/SKILL.md`, genérica y sin datos de usuario. (2) Los datos confirmados se editan en `perfil.md`, dentro de su sección E# y con fuente y fecha. (3) Cada revisión se anota en `$AGENTE0_DATOS/revisiones_perfil.jsonl`, append-only: fecha, modo (`cuentame` o `preguntame`) y lista de cambios por sección con `antes:` y `ahora:` cuando hubo contradicción. (4) La fecha de la última revisión es el reloj del recordatorio de experiencia (D15); sin bitácora se usa la fecha de `onboarding_completo`. (5) Código de apoyo en `agente0/revisiones.py` con `python -m agente0 revision ultima | registrar`.
+- **Descartado**: una sección `## Revisiones` dentro de `perfil.md` (B10 tendría que leer texto libre para sacar la fecha y `perfil.md` ya pesa ~20 KB); guardar la fecha en `configuracion.json` (mezcla un dato derivado con parámetros que edita el usuario).
+- **Por qué**: `perfil.md` queda solo con datos confirmados y B10 lee una línea de JSON en vez de interpretar markdown. Un valor reemplazado queda en la bitácora, no en el perfil, para que una cifra vieja no se confunda con una vigente.
+- **Diario (2026-11-18)**: lo que el usuario marca como contexto de su trabajo y no como logro de CV va a `$AGENTE0_DATOS/diario.md`, un archivo aparte con entradas fechadas y fuente; no entra al CV ni a formularios salvo que el usuario lo marque como hito y se promueva a `perfil.md`. Descartado: un campo `diario` en la bitácora JSONL (difícil de leer y editar a mano). Las entradas de diario se anotan en la bitácora con `seccion: diario`. Sale de C9: el recordatorio semanal es un diario y no todo es hito.
+- **Consecuencias**: B10 usa `fecha_ultima_revision` en vez de `recordatorios.json` para el caso de experiencia. Una revisión sin cambios también se registra (reinicia el reloj). Un md previo se trata como insumo: en la primera prueba traía información inexacta (un producto que no existe y comunicaciones en un idioma que el usuario no habla), así que se confirma dato por dato y se registran las negaciones que evitan reutilizarlo.
+
+## 2026-11-16 — U6: biblioteca de respuestas tipo del usuario 1
+
+- **Elegido**: (1) Aprobadas 19 respuestas (11 hechos y 8 narrativas) en `$AGENTE0_DATOS/origen/respuestas_u6.md`; B5 las pasa a `respuestas/<categoria>/v001_<fecha>.md`. (2) Las reglas del material de partida que chocaban con el perfil se reemplazaron por lo confirmado en el perfil: los niveles y los años se declaran por área, tal como los respalda el perfil, y lo que no se desplegó en una empresa se declara como proyecto propio. (3) Aviso previo no se declara (si un formulario lo pide aparte, el agente pausa y pregunta). (4) Categoría nueva H11, datos personales (RUT, fecha de nacimiento, dirección) y la fuente de la vacante, que sale del portal. (5) Ninguna respuesta lleva `siempre_a_revision`: el agente pregunta solo la primera vez que falta una respuesta, la guarda (D9) y la reutiliza sin consultar.
+- **Descartado**: declarar "5+ años liderando analytics" (no calza con ~3 años de liderazgo, E12.1); "pilotos de IA" sin un piloto confirmado; marcar respuestas de liderazgo, renta, autorización o datos personales para revisión en cada postulación.
+- **Por qué**: aplica veracidad sin perder independencia: lo sensible se resolvió en la aprobación inicial y el agente solo detiene la postulación ante lo que no tiene respuesta confirmada, como ya fija D9.
+- **Consecuencias**: B5 implementa `siempre_a_revision` solo si algún día se pide; por ahora la marca no se usa. H11 guarda RUT y fecha de nacimiento en un archivo local fuera del repo, sin pasarlos a CV ni a logs. Los años de H7 se revisan una vez al año y cuando cambie el perfil.
+
+## 2026-11-16 — B2: onboarding del usuario 1, qué entra al perfil y cómo se declara
+
+- **Elegido**: (1) Solo lo confirmado dato por dato entra a `$AGENTE0_DATOS/perfil.md` (experiencia y configuración inicial) e `intereses.md`, cada uno con fuente y fecha; `onboarding_completo` queda marcado con fecha en `perfil.md`. (2) El md de experiencia detallada que entregó el usuario 1 (`solo_lectura/experiencia_laboral_*.md`) es insumo, no verdad: se confirma punto por punto y sus aclaraciones prevalecen sobre el md. (3) Criterio de declaración: lo que el agente sabe del usuario es una cosa y lo que declara es otra; se puede filtrar y encuadrar qué se dice, sin mentir. Ejemplo: las respuestas tipo no mencionan hace cuánto busca el usuario y, si un formulario lo pregunta directo, el agente pausa. (4) Una cifra estimada y aún no medida se declara solo como "potencial estimado", nunca como resultado logrado. (5) Estrategia de búsqueda agresiva en volumen, para validar el producto y que aprenda; sigue dentro de los límites por portal y las reglas de siempre.
+- **Descartado**: guardar las respuestas de C1 a C12 en `configuracion.json` (el esquema rechaza claves desconocidas; B6 y B11 lo ampliarán). Escribir una duración aproximada de la búsqueda cuando es inexacta (se omite). Usar una cifra estimada como logro.
+- **Por qué**: aplica la regla de veracidad de `CLAUDE.md` sin dejar de respetar que el usuario decide qué cuenta de sí mismo. El criterio (3) lo tienen que respetar U6 y B5 al armar las respuestas tipo.
+- **Consecuencias**: Los proyectos previos del usuario quedan marcados con su estado real en su perfil. Las empresas con un proceso ya activo quedan sin postular de nuevo y con aprobación manual. El ritmo de B6 y la configuración de B11 parten de la estrategia agresiva; los umbrales de match son la palanca y B16 los simula.
+- **Pendiente**: C6 (empresas con aprobación manual obligatoria) sin respuesta; horas semanales y minutos por oferta de C8; si la foto se usa en el CV visual, se decide en B3 según la investigación de ATS; cuando haya una medición real de un resultado estimado, actualizarlo en el perfil.
+
+## 2026-11-15 — B1: ruta de datos, estructura por usuario y alcance del código
+
+- **Elegido**: (1) `AGENTE0_DATOS` apunta directo a la carpeta de una persona (sugerida `~/Agente0-datos/`); sin variable, o con la ruta dentro del repo, el agente no parte. (2) Estructura: perfil, intereses, configuración y empleos como archivos únicos; cada postulación es una carpeta (`postulacion.json`, `eventos.jsonl` append-only, CV adaptado, instantánea inmutable); CV base y respuestas versionados en carpetas con fecha. El árbol está en `docs/contexto_completo.md` §9. (3) Paquete Python mínimo `agente0/` (resolver la ruta, crear la estructura con `python -m agente0 init`, generar el ID de postulación, validar `configuracion.json` con Pydantic v2) y pruebas de integración con pytest sobre una carpeta temporal real, sin mocks, que nunca tocan la carpeta de datos del usuario.
+- **Descartado**: (1) raíz con subcarpeta por usuario y una segunda variable para el usuario activo: contradice D3 y deja a otras personas al alcance del agente. (2) tablas planas por entidad (`postulaciones.csv`, `eventos.csv`): cada cambio de estado edita un archivo compartido y el CV adaptado queda lejos de su postulación. (3) solo script de carpetas, sin paquete: las pruebas se reducían a chequear que existan carpetas y el ID y los esquemas se postergaban a B4.
+- **Detalles de implementación**: el ID de postulación es `<empresa>-<cargo>-<hash de 6 caracteres de la URL canónica>`, determinista, para que la misma vacante no genere dos postulaciones. `configuracion.json` rechaza claves desconocidas (se edita a mano) y redondea la autonomía hacia abajo al nivel fijo (D12). `init` solo crea lo que existe en B1 (carpetas y configuración) y nunca pisa archivos; los demás los crea la operación que los usa. El esquema de `postulacion.json` (estados de D5 y errores de D14) se difiere a B4, que es quien lo define. El material de partida del usuario 1 (perfil consolidado y hoja de onboarding) se movió a `origen/` y no es el `perfil.md` confirmado: el perfil solo recibe lo confirmado en B2 (D6).
+- **Por qué**: aislamiento por construcción (D3) y B4 a B11 parten sobre una base probada.
+- **Consecuencias**: el agente depende de que `AGENTE0_DATOS` esté definida en la sesión de Claude Code. Los datos no tienen respaldo en git: la carpeta no es un repo; queda abierto si se inicializa uno local (D2 menciona el historial en git).
+- **Condición para reabrir**: que se necesite más de una persona por instalación o que el volumen de postulaciones haga lenta la lectura de carpetas (misma condición que D2).
+
+## 2026-11-15 — U5: clasificación de portales y acceso del usuario 1
+
+- **Elegido**: clasificación inicial de portales por método, riesgo de bloqueo y límite diario, registrada en `$AGENTE0_DATOS/origen/` (material de partida) §8.4. D3 y D4 siguen vigentes sin cambios: el usuario 1 inicia sesión a mano en cada portal, la primera vez que se use (B8), y si una sesión expira el agente pausa y le avisa. El agente solo detecta la expiración al abrir el portal (no hay ejecución en segundo plano, D1).
+- **Descartado**: guardar usuario y contraseña en un `.env` y pedirle al agente que lo complete cuando falte. Razones: el agente puede leer cualquier archivo al que el usuario tenga acceso y su contenido pasa al contexto de la sesión; queda en texto plano en el disco; y el agente tiene prohibido escribir contraseñas en un login, así que no las usaría. Variante B' (`.env` solo con la cuenta por portal, sin contraseñas): no se adopta; la cuenta por portal se registra en el perfil cuando haga falta.
+- **Por qué**: ir de menos a más. Con sesión manual no hay nada que filtrar y D3 queda intacto.
+- **Condición para reabrir**: que haya una herramienta de credenciales conectada a un gestor de contraseñas, en que el usuario apruebe cada dato y el agente no vea el valor.
+- **Requisito del usuario 1 (extiende D10)**: al buscar vacantes, el agente sugiere portales que no estén en la lista del usuario cuando, dado su perfil, valgan la pena, con una línea de por qué, y lo invita a crear la cuenta. El agente nunca crea la cuenta (D4): la crea el usuario, y la fuente entra a la lista solo cuando él la aprueba. Aplica a cualquier usuario, según su propio perfil y país.
+- **Pendiente**: validar de nuevo las sesiones y elegir el portal de la primera prueba, en B8; implementar las sugerencias de portales en B6.
+
+## 2026-11-15 — U4: nivel de autonomía y condiciones del usuario 1
+
+- **Elegido**: nivel objetivo 75 % solo para validar el funcionamiento, con la intención de pasar a 100 % una vez validado (con el aviso explícito de D12). Se parte en 0 % y se sube de forma gradual (B11, B12). Las ocho condiciones de `$AGENTE0_DATOS/origen/` (material de partida) §2.2 quedan confirmadas con la clasificación de D12. Umbral de match por eje: tengo ≥ 70 y quiero ≥ 60.
+- **Descartado**: 50 % y 25 % como objetivo; umbral más estricto (tengo ≥ 75 y quiero ≥ 70); dejar el umbral sin números hasta B6.
+- **Por qué**: 75 % equivale a su elección del 14-nov y valida el flujo con condiciones explícitas antes de quitarlas. Los umbrales no tienen datos detrás (los pesos de D11 no están validados): son provisorios y se recalibran con el primer ranking real en B6, antes de cualquier envío automático.
+- **Requisito del usuario 1**: nada de esto debe ser fijo. Nivel, condiciones, umbrales, renta mínima, pesos y límites son parámetros de un panel de configuración por usuario, declarados en un solo lugar y modificables sin tocar código. Queda anotado en B11. Pidió además que el agente pueda mostrar qué cambiaría según la configuración (simulación sobre el último ranking): ítem B16.
+- **Consecuencias**: al pasar a 100 % dejan de regir las condiciones de preferencia (2, 3, 4, 5b, 7b); siguen los filtros excluyentes de D11 y las reglas siempre vigentes de D12.
+
+## 2026-11-15 — Datos de perfil del usuario 1 solo en el onboarding (elimina U1 a U3)
+
+- **Elegido**: eliminar U1 (cifras y estados), U2 (procesos y empresas) y U3 (contacto y foto) como ítems del plan. Sus preguntas son las filas `por confirmar` y `falta` de `$AGENTE0_DATOS/origen/` (hoja de onboarding) (E4, E8, E11, C2, C6, C11, C12) y se responden en B2. B2 deja de depender de U1 y U3; U6 pasa de depender de U1 a depender de B2.
+- **Descartado**: mantener la Fase 2 como adelanto del onboarding, con los datos guardados antes en `$AGENTE0_DATOS/origen/` (material de partida) (era la opción B).
+- **Por qué**: El usuario 1 señaló que son preguntas de onboarding y que éste debe cubrir lo que falta de su perfil actual. Dejarlas en dos lugares duplicaba la pregunta y obligaba a sincronizar dos listas.
+- **Consecuencias**: las respuestas esperan a B1 y B2. U4 y U5 siguen en la Fase 2 porque dependen de decisiones y accesos; sus filas C7, C8 y C10 de la hoja se confirman al cerrarlos.
+
+## 2026-11-15 — D18: aprendizaje entre usuarios
+
+- **Elegido**: variante B, opt-in con señales agregadas y anonimizadas. Apagado por defecto: cada usuario decide si comparte y puede desactivarlo. Lo único que se comparte son conteos (usos y primeros contactos de entrevista, D16) por categoría de respuesta (D9) y familia de cargo. Nunca salen texto literal de respuestas, empresa, cargo exacto, renta, nombre, historial ni identificadores del usuario o de la postulación. Solo se usan celdas con señales de varios usuarios (el mínimo se fija al construirlo). Las señales compartidas sirven de punto de partida a un perfil que aún no cumple su umbral de 8 usos propios y nunca sustituyen sus señales propias.
+- **Descartado**: variante A, cada perfil aprende solo con lo suyo (era la recomendada).
+- **Por qué**: reduce el arranque en frío de cada perfil, que con el umbral de 8 usos comparables de D16 tardaría en cumplirse.
+- **Consecuencias**: exige un almacén o servicio central que hoy no existe, lo que reabre D1 y D3 (una instalación por persona, sin servicio central). Su diseño (dónde vive, cómo se envía, cómo se verifica el anonimato y el mínimo de usuarios por celda) queda pendiente y no se construye en la Fase 3; mientras tanto cada perfil aprende solo con lo suyo, y B14 prueba que nada sale sin activar el opt-in. Con pocos usuarios hay riesgo de reidentificación, y se mezclan perfiles, países y niveles de seniority distintos.
+- **Condición para construir**: haber validado el agente con un usuario (B12 y B13) y tener más de un usuario activo. Ahí se reabren D1 y D3 para definir el mecanismo.
+
+## 2026-11-15 — D17: medición del aprendizaje
+
+- **Elegido**: variante A, antes y después con línea base propia. La línea base son las primeras ventanas del usuario, cuando aún no había recomendaciones (por defecto, sin datos); cada ventana nueva se compara contra ella.
+- **Indicadores**: primeros contactos de entrevista por hora de esfuerzo del usuario (horas declaradas en la revisión semanal, B12) y tasa de contacto por postulación con envío confirmado. Ventanas de 4 a 6 semanas contadas desde la fecha del envío confirmado.
+- **Reporte**: siempre con el número de envíos y de contactos. Con menos de 5 contactos en la ventana, el agente marca "sin conclusión". Nunca afirma que una recomendación causó un resultado; los indicadores muestran una tendencia asociada.
+- **Descartado**: variante B, antes y después más comparación simultánea de postulaciones con y sin respuesta recomendada dentro de la misma ventana y contexto.
+- **Por qué**: con tan pocos datos, una comparación más fina quedaría con celdas casi vacías y con sesgo de selección (se recomienda donde hay más datos). La variante A usa lo que ya se registra y sirve como indicador de tendencia.
+- **Consecuencias**: el mercado, la estacionalidad y los cambios de CV, de autonomía o de portales se mezclan con el efecto de las recomendaciones; las horas de esfuerzo dependen de lo que declare el usuario. El umbral de 5 contactos no está validado.
+- **Condición para reabrir**: que haya volumen suficiente por contexto para comparar con y sin recomendación, o que los cambios de mercado distorsionen las ventanas.
+
+## 2026-11-15 — D16: recompensa
+
+- **Elegido**: esquema A, solo la primera entrevista puntúa. `PRIMER_CONTACTO_ENTREVISTA` crea un solo evento de recompensa de +1 (valor configurable) asociado a las versiones exactas de las respuestas enviadas. Segunda entrevista (`NUEVA_ETAPA`), oferta y contratación se registran como eventos (D5), pero no puntúan por ahora.
+- **Puntaje**: por versión de respuesta (ID y versión, D9) y contexto parecido, una tasa suavizada que parte de la tasa base del propio usuario con el peso de 5 usos virtuales. Un solo caso exitoso no la dispara y una respuesta con 20 usos comparables pesa más que una con 1.
+- **Umbral para recomendar**: al menos 8 usos comparables de esa versión y un puntaje sobre la línea base. Si no se cumple, el agente solo muestra los datos con la marca "pocos datos". Valores iniciales, sin validar.
+- **Sin castigo**: rechazos y silencio no generan evento ni puntaje negativo. Un uso entra a la tasa solo cuando se resolvió o pasó la ventana de 30 días de D5.
+- **Alcance**: el agente puede sugerir qué versión usar o proponer una edición, nunca cambia la respuesta base solo. El resultado no modifica el perfil del usuario y es asociación, no causalidad.
+- **Descartado**: esquema B, hitos graduados (+1 primer contacto, +2 nueva etapa, +3 oferta).
+- **Por qué**: con tan pocos datos una sola señal es lo más honesto, y las respuestas de un formulario influyen en pasar el filtro inicial, no en las etapas posteriores. Ampliar después no exige rehacer nada, porque los eventos ya quedan guardados.
+- **Consecuencias**: no distingue entre una entrevista y un proceso que llega a oferta; los umbrales y el peso del punto de partida no están validados.
+- **Condición para reabrir**: que haya suficientes procesos con avance como para que los hitos posteriores aporten señal, o que los umbrales no calcen con el volumen real de envíos.
+
+## 2026-11-15 — D15: recordatorios
+
+- **Elegido**: un `X` por caso, medido como el tiempo transcurrido desde la última vez que se realizó la operación (se guarda la fecha por elemento y se compara en horas; se expresa en días). Valores iniciales: experiencia 15 días (Actualizar perfil), CV base 30 días, configuración 60 días (incluye la autonomía). Al abrir el menú, si un caso supera su `X`, el agente sugiere actualizarlo, con una pregunta por caso vencido.
+- **Respuestas**: aceptar abre la operación en ese momento. Posponer hace que reaparezca a los 7 días. Descartar reinicia el reloj del caso con su `X` completo.
+- **Reglas**: el recordatorio nunca bloquea el menú ni modifica nada solo. Si el usuario actualiza un elemento por su cuenta, su reloj se reinicia. Los tres `X` son configurables por el usuario en el onboarding (C9) y en "Actualizar configuración".
+- **Descartado**: un `X` único de 30 días para los tres casos con una pregunta agrupada.
+- **Por qué**: la experiencia cambia más rápido que la configuración en una búsqueda activa, y el CV base depende de ella y de las mejoras ATS. El ritmo por caso evita preguntar tarde por lo que cambia seguido y de más por lo que cambia poco.
+- **Consecuencias**: tres parámetros en vez de uno y valores sin validar; si la sesión no se abre, no hay aviso (D1, sin ejecución programada).
+- **Condición para reabrir**: que con uso real los avisos resulten molestos o tardíos, o que el usuario descarte o posponga seguido el mismo caso.
+
+## 2026-11-15 — D14: errores y reintentos
+
+- **Elegido**: variante A, la confirmación del sitio basta y se verifica solo si hay duda. `POSTULADO` exige una confirmación visible del sitio (mensaje de éxito, número o pantalla de gracias), guardada como captura y texto. Sin confirmación clara o con un error ambiguo (timeout, pantalla en blanco), la postulación queda `ENVIO_INTENTADO` y se verifica en el portal o el correo antes de cualquier reintento.
+- **Clasificación**: publicación cerrada → el empleo pasa a `CERRADO` (D5) y no se reintenta. Formulario incompleto (campo obligatorio, pregunta sin respuesta confirmada) → la postulación queda `PREPARADA` y se pide intervención. Error de acceso (login, CAPTCHA, 2FA, bloqueo) → pausa de D4; antes de enviar queda `PREPARADA`, durante el envío queda `ENVIO_INTENTADO`. Envío exitoso → `POSTULADO`.
+- **Reintento**: usa el mismo ID y cada intento queda como evento con fecha y evidencia. Desde `PREPARADA` se reintenta tras corregir la causa. Desde `ENVIO_INTENTADO`, primero se verifica si el envío ocurrió: si aparece en el portal o el correo, pasa a `POSTULADO` con esa evidencia; si claramente no está, vuelve a `PREPARADA`; si no se puede verificar, el agente pide intervención y nunca reenvía solo.
+- **Descartado**: variante B, doble verificación siempre (confirmación del sitio más comprobación independiente en "mis postulaciones" o por correo).
+- **Por qué**: reduce el uso de la cuenta y de Chrome del usuario, que son los riesgos principales de D4, y concentra el rigor donde hay duda, que es donde puede haber duplicados.
+- **Consecuencias**: un portal que muestre un éxito falso pasaría como postulado. Los portales que no muestran confirmación clara dejan la postulación en `ENVIO_INTENTADO` hasta verificarla.
+- **Condición para reabrir**: que con uso real aparezcan postulaciones marcadas `POSTULADO` que el portal no registró, o duplicados.
+
+## 2026-11-15 — D13: inicio de postulaciones
+
+- **Elegido**: disparo automático según el nivel de autonomía. "Actualizar postulaciones potenciales" termina mostrando el ranking y el subflujo parte con las vacantes del Top 10 (tamaño configurable, D11) que sigan en `POTENCIAL` y no estén postuladas, de mayor a menor puntaje, hasta el límite diario del portal (D12). Se procesan de a una, sin preparar todas por adelantado. Al 0 % el agente confirma el inicio de cada vacante; desde el 25 % prepara solo y el nivel decide cuánto se aprueba después, según D12.
+- **Control del usuario**: desde el ranking o durante el subflujo puede saltar una vacante (queda `POTENCIAL` para la próxima corrida) o descartarla (`DESCARTADO` con motivo, D5).
+- **Descartado**: selección previa siempre, con el usuario eligiendo qué vacantes entran al subflujo hasta el 50 %.
+- **Por qué**: calza con D12, que ya fija que desde el 25 % el agente prepara solo, y con el flujo v1.1, donde la operación lleva al subflujo. Una selección previa duplica el control que ya entrega el nivel y agrega un paso por corrida.
+- **Consecuencias**: a 25–50 % el agente puede adaptar CVs de vacantes que el usuario no quería; se mitiga saltándolas. Sin segundo plano (D1), lo que no alcance por el límite diario o por cierre de sesión sigue `POTENCIAL` y la próxima actualización lo retoma por prioridad.
+- **Condición para reabrir**: que a 25–50 % el usuario descarte seguido vacantes ya preparadas, es decir, esfuerzo perdido.
+
+## 2026-11-15 — D12: autonomía, niveles, permisos y excepciones
+
+- **Elegido**: modelo A, niveles fijos con condiciones de auto-envío y excepciones. La tabla de acciones por nivel se guarda internamente como una matriz de permisos por acción, de modo que pasar al modelo de permisos por acción es exponerla, sin rehacer nada.
+- **Niveles**: 0 % confirma cada acción y cada respuesta. 25 % busca, prioriza y prepara CV, respuestas y formulario solo; el usuario aprueba CV, respuestas y envío. 50 % además adapta el CV y completa el formulario solo; el usuario revisa las respuestas nuevas o sensibles y el envío final. 75 % envía solo las postulaciones que cumplen todas las condiciones de auto-envío; el resto queda en cola de aprobación. 100 % envía sin aprobaciones rutinarias, solo con las reglas siempre vigentes y sin las condiciones de preferencia. Un valor intermedio se redondea hacia abajo al nivel más cercano y se avisa.
+- **Reglas siempre vigentes** (en todo nivel): vigencia verificada el mismo día, vacante no postulada antes, CV adaptado auditado, respuestas confirmadas (D9), empresa no excluida y las pausas de D4 (CAPTCHA, login, 2FA, términos, campos imposibles). **Condiciones de preferencia** (solo al 75 %): las del usuario (seniority, ubicación, renta mínima, umbral de match por eje), que se confirman en U4.
+- **Excepciones**: lista "siempre aprobar a mano" por empresa o portal, que exige aprobación del envío aunque el nivel sea más alto; tope de nivel por portal (por ejemplo, LinkedIn con máximo 50 %).
+- **Límites diarios por portal** (valores iniciales, a ajustar al iterar): riesgo alto, 3 envíos por día; medio, 5; bajo, 8. Pausa de al menos 2 minutos entre envíos. La clasificación de riesgo por portal se fija en U5.
+- **Vista previa y aprobación**: antes de pedir aprobación, el agente muestra el CV, las respuestas literales, los documentos, el formulario completado y qué se enviará. Se puede aprobar una por una o en lote, con el resumen de cada una.
+- **Aviso antes de activar 100 %**: el agente lista exactamente las acciones externas que podrá hacer (incluido enviar postulaciones, a qué portales y con qué límites) y pide confirmación explícita, que se registra con fecha. Antes de la primera acción externa en cada portal también se pide consentimiento (D3), sea cual sea el nivel.
+- **Registro**: cada postulación guarda el nivel vigente, qué fue automático y qué aprobado, y cada condición evaluada con su resultado.
+- **Ejecución**: sin segundo plano (D1); el agente trabaja mientras la sesión está abierta, deja pendientes en la cola de aprobación y notifica las incidencias en la sesión.
+- **Descartado**: modelo B, permisos por acción como configuración visible, con el porcentaje como atajo.
+- **Por qué**: simple de entender, implementar y probar, y calza con el modelo de nivel más condiciones del usuario y con el parámetro de 0 a 100 % del flujo.
+- **Consecuencias**: no se puede automatizar una acción sin cambiar de nivel; los límites diarios son valores iniciales sin validar.
+- **Condición para reabrir**: que el usuario necesite automatizar una acción sin tocar las demás, o que los niveles fijos no calcen con sus condiciones.
+
+## 2026-11-15 — D11: priorización
+
+- **Elegido**: variante B, puntaje único ponderado, con una condición pedida por el usuario 1: los puntajes "lo que quiero" y "lo que tengo" se calculan y se muestran siempre por separado. Los criterios se agrupan en dos ejes y el total es la suma ponderada de ambos. Agrupación inicial, tomada de la rúbrica de `agente.md` §14: **Tengo** (55 %): ajuste de experiencia y responsabilidades 30 %, compatibilidad técnica y de negocio 20 %, factibilidad de la candidatura 5 %. **Quiero** (45 %): potencial de liderazgo y crecimiento 20 %, potencial de remuneración 15 %, industria, empresa y condiciones 10 %. Cada eje se muestra de 0 a 100; el total ordena la lista. Agrupación y pesos son configurables por usuario; el agente propone los iniciales y el usuario los aprueba.
+- **Filtros excluyentes** (antes de puntuar, configurables por usuario): renta publicada bajo el mínimo (C3), modalidad o ubicación incompatible (I3), seniority desalineado, empresa excluida (C6), requisitos obligatorios que faltan, cargo de mal fit (I5), y vacante ya postulada o con proceso activo en esa empresa. Las descartadas pasan a `DESCARTADO` con su motivo (D5) y el usuario puede verlas y rescatarlas.
+- **Estabilidad**: la última lista es la base de la siguiente; una vacante sale solo si el usuario declara su estado, se verifica el cierre, entra una claramente superior o hay evidencia material nueva. Cada puntaje guarda la evidencia con que se calculó: si la evidencia no cambió, el puntaje no cambia. Una vacante nueva entra solo si supera a la última del Top 10 (tamaño configurable).
+- **Explicación**: tabla con cargo y empresa, puntaje de quiero, puntaje de tengo, total, contribución por criterio, brecha principal, vigencia, fuente y enlace. Después, cambios respecto de la lista anterior (nueva, sube, baja, cerrada, postulada o sin cambios), cierres próximos y orden de ataque. El puntaje no es una probabilidad de entrevista.
+- **Aprendizaje**: las recompensas (D16) pueden sugerir ajustar pesos, nunca los cambian en silencio.
+- **Descartado**: variante A, dos ejes con una prioridad que combina fit, probabilidad, upside, vigencia y urgencia sin pesos definidos.
+- **Por qué**: la estabilidad es el requisito crítico del usuario 1 y un puntaje con evidencia fija la garantiza; mantener los dos ejes visibles conserva la distinción entre lo que quiere y lo que tiene.
+- **Consecuencias**: los pesos no están validados. El umbral de match de las condiciones de auto-envío (U4) se define por eje, no sobre el total.
+- **Condición para reabrir**: que el total ordene mal frente al criterio del usuario (por ejemplo vacantes muy deseables pero con ajuste técnico medio), o que los pesos deban recalibrarse con resultados reales.
+
+## 2026-11-15 — D10: fuentes de empleos y periodicidad
+
+- **Elegido**: variante B, búsqueda web primero y navegador solo donde hace falta. El agente descubre vacantes con búsqueda web y lectura de páginas, y usa la extensión de Chrome solo para los portales que la exigen (LinkedIn o con login) y para confirmar la vigencia de las candidatas que entran al ranking. Cada fuente indica su método: `web` o `navegador`.
+- **Fuentes por usuario y país**: la lista vive en el perfil de cada usuario, con nombre, tipo (generalista, especializada, corporativa o headhunter), país, enlace, método, riesgo de bloqueo y si está activa. El repo no trae catálogo por país: al definir el país (C1) el agente propone una lista inicial y el usuario la aprueba.
+- **Periodicidad**: a demanda, al abrir "Actualizar postulaciones potenciales". Al abrir el menú, el agente sugiere actualizar si pasaron más de 3 días desde la última vez (valor inicial a ajustar al iterar). Ventana de búsqueda de 30 a 45 días hacia atrás, configurable.
+- **Vigencia**: una vacante entra al ranking como activa solo si se verificó en la fuente oficial (botón Solicitar o Apply, sin aviso de cierre). Jerarquía: portal corporativo, LinkedIn oficial, portal confiable, agregador. Si la fuente oficial dice cerrada, es `CERRADO` aunque el agregador diga abierta. Se vuelve a verificar el mismo día antes de postular.
+- **Duplicados**: la misma vacante en varias fuentes es un solo empleo potencial, con el enlace oficial como principal.
+- **Ritmo**: se respetan los límites por portal de D4, sin ráfagas.
+- **Descartado**: variante A, recorrer cada fuente con el navegador.
+- **Por qué**: reduce el uso de la cuenta y de Chrome del usuario, que son los riesgos principales de D4; la verificación final con navegador cubre el punto débil de la búsqueda web.
+- **Consecuencias**: la lectura web no ve contenido con login o muy dinámico, y los resultados de un buscador pueden estar desactualizados, así que la cobertura de algunos portales es peor y la vigencia se verifica siempre en el sitio oficial.
+- **Condición para reabrir**: que la cobertura de la búsqueda web sea insuficiente en los portales que más importan al usuario.
+
+## 2026-11-15 — D9: respuestas tipo
+
+- **Elegido**: variante A, una respuesta vigente por categoría con versiones sucesivas (la anterior se archiva al editar). El esquema queda preparado para varias variantes por categoría: cada respuesta lleva ID estable y versión, y un campo `variante` opcional. Categorías iniciales (la lista es genérica; el contenido es de cada usuario): de hechos, que salen del perfil y se reutilizan literal (contacto, renta, disponibilidad y aviso previo, modalidad y ubicación, autorización de trabajo, idiomas, años de experiencia por área o tecnología, nivel de herramientas, personas a cargo, educación y certificaciones); y narrativas, que el agente ajusta a la vacante sin contradecir el perfil (motivación, por qué cambiarte, por qué contratarte, principal brecha, liderazgo, pitch corto, resumen de experiencia, logro destacado). Exigen respuesta nueva, sin reutilizar nada: declaraciones legales o de consentimiento, conflictos de interés o parentescos, haber trabajado antes en la empresa, preguntas de juicio sin evidencia en el perfil, pruebas o casos y cualquier pregunta que no calce con una categoría confirmada.
+- **Versionado**: cada edición crea una versión nueva en archivo con fecha (D2); solo las versiones aprobadas por el usuario se usan en envíos; la postulación guarda el texto literal enviado más el ID y la versión, y editar la base no cambia lo ya enviado; el aprendizaje asocia señales a ID y versión y nunca modifica la base en silencio; el agente puede proponer una edición, no aplicarla; si ajustar una respuesta a la vacante agrega una afirmación nueva, pasa a ser respuesta nueva.
+- **Sin respuesta confirmada**: el agente pausa esa pregunta, la muestra con un borrador marcado y espera; si el usuario la aprueba, puede guardarla como versión nueva o categoría nueva. Mientras tanto la postulación queda en cola de aprobación y no se envía con la pregunta en blanco, ni siquiera al 100 %.
+- **Descartado**: variante B, varias variantes por categoría narrativa elegidas según la vacante y el historial.
+- **Por qué**: va con ir de menos a más; simple, sin dudas sobre qué se envía y poco que mantener y aprobar.
+- **Consecuencias**: el aprendizaje (D16) compara versiones a lo largo del tiempo, no variantes simultáneas, así que es más lento y se mezcla con cambios del mercado.
+- **Condición para reabrir**: que haya suficientes envíos para comparar variantes, o que una sola respuesta por categoría no calce con las distintas familias de cargo.
+
+## 2026-11-15 — D8: carta de presentación
+
+- **Elegido**: la carta se genera solo cuando el formulario la exige o el usuario la pide para una vacante concreta. Si el campo es opcional, no se genera. Cuando la exige el formulario, el agente la redacta con el perfil y la vacante y pasa por la compuerta de autonomía como cualquier otro paso. Reglas (propuestas, el tono lo confirma el usuario 1): una página como máximo, en 3 o 4 párrafos (por qué la vacante y la empresa, 2 o 3 evidencias del perfil ligadas a los requisitos, la brecha principal si es relevante, cierre); cada afirmación respaldada por el perfil confirmado, sin inflar liderazgo ni producto ni repetir el CV; datos de la empresa solo desde la vacante o una fuente verificable; tono formal, directo y ejecutivo, sin clichés, en el idioma de la vacante; archivo en la carpeta de la postulación, en texto y PDF de una columna (estilo de la versión ATS), incluido en la instantánea de lo enviado.
+- **Descartado**: generarla en el paso 0 para cada vacante priorizada.
+- **Por qué**: va con ir de menos a más. La mayoría de los portales no la piden y un ATS suele leer solo el CV y el formulario; menos trabajo de revisión (meta de 10 a 15 minutos por oferta) y menos afirmaciones que auditar.
+- **Consecuencias**: una postulación con carta exigida depende de la compuerta de autonomía, igual que el CV. Se pierde la oportunidad de diferenciarse con cartas opcionales.
+- **Condición para reabrir**: que con uso real las cartas opcionales mejoren la tasa de contacto, o que un portal o canal frecuente las exija.
+
+## 2026-11-15 — D7: formato maestro de CV y variantes
+
+- **Elegido**: LaTeX como maestro, con dos salidas a PDF del mismo contenido: visual (la plantilla aprobada por el usuario 1, 3:4, con foto y columnas) y ATS (A4, una columna, sin foto, íconos ni maquetación). Las variantes por vacante editan el contenido de ambas (titular, perfil, orden de habilidades, bullets), se compilan, se renderizan a PNG para revisarlas y la versión ATS se comprueba extrayendo el texto. Versionado: `.tex` y PDF en carpetas con fecha, con `diff` entre versiones; las versiones enviadas son instantáneas inmutables. Control de veracidad previo a cada envío: el agente audita cada afirmación del CV adaptado contra el perfil confirmado y entrega un resumen de cambios y brechas; solo se envía un CV aprobado según la autonomía vigente.
+- **Descartado**: CV plano de una columna como único formato, en DOCX y PDF, con el contenido en un archivo estructurado.
+- **Por qué**: la plantilla visual ya está construida y aprobada, y un único contenido cubre ambos casos. Si un canal exige DOCX, se agrega como salida de la versión ATS sin cambiar el maestro.
+- **Consecuencias**: hay que revisar el render de cada variante (el posicionamiento absoluto se rompe con frases largas). XeLaTeX no está instalado en esta máquina (verificado el 2026-11-15): instalarlo, con las fuentes de la plantilla, es requisito de B3 y se hace con aprobación del usuario 1. La plantilla visual actual es la del usuario 1; para un segundo usuario (B14) hay que decidir si se parte de la misma maqueta con su contenido o solo con la versión ATS.
+- **Condición para reabrir**: que un portal o canal exija un CV editable (DOCX), o que el costo de revisar el render visual supere el beneficio.
+
+## 2026-11-15 — D6: onboarding y Actualizar perfil
+
+- **Elegido**: modo general A, guiado por preguntas del banco de `docs/onboarding.md`, una a la vez. Para el usuario 1, modo B: hoja pre-llenada desde su perfil (`$AGENTE0_DATOS/origen/` (hoja de onboarding)), con confirmación dato por dato y la pregunta del banco solo donde falta información. Reglas: solo entra al perfil lo confirmado, con fuente y fecha; lo no confirmado queda `por_confirmar` y no entra al CV ni a los formularios; marca `onboarding_completo` con fecha para detectar la primera vez, y retoma si se interrumpe; mínimo para terminar = preguntas obligatorias; autonomía por defecto 0 %; al terminar, muestra el perfil y pasa al menú sin acciones externas.
+- **Ampliación pedida por el usuario 1**: la operación 1 "Actualizar experiencia" pasa a llamarse **Actualizar perfil**, con dos caminos: "Cuéntame" (relato libre del usuario, el agente extrae datos y se confirman uno a uno) y "Pregúntame" (preguntas de profundización sobre experiencia reciente). Detecta vacíos del perfil (logros sin cifra, proyectos sin estado, contradicciones abiertas). Mantiene `(*)`: pregunta cada `X` días, nunca modifica solo. Es una ampliación de la operación 1 del flujo v1.1, no una séptima operación; si se prefiere separada, cambia solo la documentación.
+- **Descartado**: modo B como diseño general (recomendado por Claude, no elegido); ofrecer B a otros usuarios por ahora.
+- **Por qué**: A funciona para cualquier persona sin depender de documentos; B aprovecha el material del usuario 1 sin pedirle datos ya registrados.
+- **Consecuencias**: la hoja del usuario 1 marca 5 respuestas como `falta`, 9 como `por confirmar` y el resto como `listo`; varias de las `por confirmar` (E4, E8, E11, C2, C11) coinciden con U1 a U3. Se agrega el ítem B15 (Actualizar perfil) al plan.
+- **Condición para reabrir**: que el modo A resulte demasiado largo para otros usuarios (ofrecer B con sus documentos) o que Actualizar perfil deba separarse de la operación 1.
+
+## 2026-11-15 — D5: catálogo de estados y cierre de oportunidades
+
+- **Elegido**: variante A, pocos estados y el detalle en eventos tipados. Empleo potencial: `POTENCIAL`, `EN_POSTULACION`, `CERRADO` (publicación no vigente) y `DESCARTADO` (con motivo: filtro excluyente, empresa excluida o decisión del usuario). Postulación: `PREPARADA` → `ENVIO_INTENTADO` → `POSTULADO` (solo con confirmación del sitio) → `EN_PROCESO` (campo `etapa`) → `FINALIZADA` (campo `resultado`: oferta aceptada, oferta rechazada por el usuario, rechazada por la empresa, retirada o sin respuesta). Eventos tipados: `PRIMER_CONTACTO_ENTREVISTA`, `ENTREVISTA_REALIZADA`, `NUEVA_ETAPA`, `OFERTA_RECIBIDA`, `RECHAZO`, `RETIRO`, `CIERRE_POR_SILENCIO`. `CONTACTADO_PRIMERA_ENTREVISTA` es el evento `PRIMER_CONTACTO_ENTREVISTA`, que deja la postulación `EN_PROCESO` con etapa "primera entrevista". Hoy solo ese evento es elegible para recompensa; D16 decide si se suman otros.
+- **Reglas**: sin retrocesos, salvo una corrección registrada por el usuario; la única vuelta permitida es `ENVIO_INTENTADO` → `PREPARADA` si el envío falló sin enviarse (detalle en D14). Una oportunidad termina cuando el empleo pasa a `CERRADO` o `DESCARTADO`, o cuando la postulación llega a `FINALIZADA`. El silencio no se castiga: el agente puede proponer cerrar por silencio pasado un plazo configurable (30 días como valor inicial, a confirmar al iterar), pero nunca cierra solo.
+- **Descartado**: variante B, un estado por etapa (`CONTACTADO_PRIMERA_ENTREVISTA`, `EN_ENTREVISTAS`, `OFERTA`, `ACEPTADA`, etc.).
+- **Por qué**: catálogo corto que cubre lo mínimo del flujo y de la antiduplicación; el aprendizaje queda separado de los estados, y D14 y D16 pueden evolucionar sin reabrirlo. Alineado con el enfoque de MVP e ir iterando.
+- **Consecuencias**: el estado solo no dice en qué etapa va el proceso; hay que leer `etapa` o el último evento.
+- **Condición para reabrir**: que con uso real el campo `etapa` y los eventos resulten insuficientes para seguir los procesos, o que D16 premie hitos que exijan estados propios.
+
+## 2026-11-15 — D4: plataforma de navegación web
+
+- **Elegido**: la extensión de Chrome conectada a Claude Code, sobre el Chrome real del usuario y su sesión abierta. Política común: ante CAPTCHA, login, 2FA, términos que haya que aceptar o campos imposibles, el agente pausa, informa el motivo y la URL y espera al usuario, incluso al 100 %; no resuelve CAPTCHA, no crea cuentas ni acepta términos por el usuario. Al reanudar, revisa el estado de la página antes de seguir, para no duplicar. Cada portal se clasifica con riesgo de bloqueo bajo, medio o alto; LinkedIn parte como alto y se empieza por portales de bajo riesgo. Los envíos van sin ráfagas y con límite diario por portal. Ante un aviso de actividad inusual o verificación de identidad, se detiene ese portal.
+- **Descartado**: Playwright propio con perfil de navegador dedicado.
+- **Por qué**: coherente con D1 y D3 (sin credenciales en archivos, nada que construir). Un navegador real tiene menos riesgo de CAPTCHA y de bloqueo de cuentas que uno automatizado, y el usuario ve lo que ocurre y puede intervenir.
+- **Consecuencias**: el agente ocupa el Chrome del usuario mientras trabaja y requiere Chrome y la extensión abiertos; no hay ejecución en segundo plano. Cada usuario instala la extensión. Un error afecta la cuenta real del usuario, de ahí el límite de ritmo. Los límites diarios exactos se fijan en D12 y la clasificación de portales en U5.
+- **Condición para reabrir**: que se necesite ejecución sin supervisión o sin Chrome abierto (misma condición que D1).
+
+## 2026-11-15 — D3: aislamiento entre usuarios, datos personales y credenciales
+
+- **Elegido**: una instalación por persona. El repo guarda solo skills y reglas; los datos de cada usuario viven en un directorio propio fuera del repo (por ejemplo `~/Agente0-datos/`), indicado por una variable de entorno. Cada persona corre su propia copia. El agente no guarda credenciales de portales en archivos: usa la sesión abierta del usuario en el navegador y, si un portal pide login, pausa y lo hace el usuario (confirmado en D4). El consentimiento se pide antes de la primera acción externa en cada portal; su detalle se define en D12.
+- **Descartado**: una carpeta por usuario dentro del proyecto (`docs/usuarios/<nombre>/`, ignorada por git).
+- **Por qué**: el aislamiento es real y no depende de una convención; ningún dato personal queda en ningún repo; el agente nunca tiene a otros usuarios en contexto. Aún no hay código, así que mover los datos cuesta poco.
+- **Consecuencias**: el perfil del usuario 1 se mueve al directorio de datos en B1 (hasta entonces sigue en `docs/usuarios/`, ignorado por git); cada persona actualiza su copia de las skills; el aprendizaje entre usuarios (D18) solo puede ser opt-in. El nombre exacto de la ruta y de la variable de entorno se fijan en B1.
+- **Condición para reabrir**: que se quiera un servicio central con varios usuarios (ver D1).
+
+## 2026-11-15 — D2: persistencia y modelo de datos
+
+- **Elegido**: archivos locales por usuario, un archivo por entidad (las de `docs/contexto_completo.md` §9): `md` para lo narrativo, JSON o CSV para lo estructurado. ID estable por postulación; instantáneas de lo enviado como archivos inmutables; CV base y respuestas tipo versionados en carpetas con fecha.
+- **Descartado**: PostgreSQL desde el inicio.
+- **Por qué**: coherente con D1 (sin servicios que instalar ni mantener antes de validar el flujo); los archivos se leen y se editan a mano y el historial queda en git.
+- **Consecuencias**: sin consultas ni integridad entre entidades; la antiduplicación y las estadísticas por respuesta se calculan leyendo los archivos. Los IDs estables permiten migrar a PostgreSQL sin rediseñar.
+- **Condición para reabrir**: que el volumen de postulaciones haga inviable consultar los archivos, o que se necesite acceso concurrente de varios usuarios.
+
+## 2026-11-15 — D1: forma de ejecución y arquitectura técnica
+
+- **Elegido**: agente sobre Claude Code, a demanda. Cada operación del menú es una skill; los datos viven en archivos locales por usuario, guardados por entidad (las de `docs/contexto_completo.md` §9); el navegador es la extensión de Chrome conectada a Claude Code.
+- **Descartado**: servicio propio en Python (FastAPI y Claude API) con tareas programadas.
+- **Por qué**: permite probar el flujo completo con un usuario sin construir servidor, persistencia, autenticación ni automatización del navegador antes de saber si el agente consigue entrevistas (ir de menos a más).
+- **Consecuencias**: no hay ejecución programada; los recordatorios de `X` días se revisan al abrir el menú y la búsqueda de empleos corre cuando el usuario la pide. "Cualquier persona" hoy significa quien use Claude Code. Programar tareas puede sumarse después con `/schedule`; migrar al servicio propio es mover los archivos por entidad a tablas.
+- **Condición para reabrir**: que haga falta ejecución programada sin sesión abierta o abrir el agente a personas que no usan Claude Code.
+
+## 2026-11-15 — El agente es multiusuario
+
+- **Elegido**: el agente es para cualquier persona que quiera usarlo. El usuario 1 es el primer usuario. Los datos de cada usuario viven en `docs/usuarios/<nombre>.md`; `CLAUDE.md` y `docs/contexto_completo.md` no llevan datos personales.
+- **Descartado**: un agente hecho solo para el usuario 1 (versión inicial de `CLAUDE.md` y del contexto, del 2026-11-14).
+- **Por qué**: El usuario 1 lo indicó al responder la pregunta de reglas de auto-envío y entregó `solo_lectura/flujo_agente_busqueda_laboral.md` con el flujo y las reglas generales.
+- **Consecuencia**: el contexto único se separó en el diseño del agente (`docs/contexto_completo.md`) y el perfil del usuario 1 (`$AGENTE0_DATOS/origen/` (material de partida)).
+
+## 2026-11-15 — Plan secuencial de resolución
+
+- **Elegido**: resolver todas las decisiones pendientes en orden, con un plan en `docs/tracking/todos.md` (usable con `/todos`): Fase 1 con 18 decisiones de diseño, Fase 2 con 6 datos del usuario 1 y Fase 3 con 14 pasos de construcción, unidos por `[dep: ...]`.
+- **Descartado**: elegir una sola decisión para empezar (la opción que se le ofreció al usuario 1); construir antes de cerrar las decisiones.
+- **Por qué**: El usuario 1 pidió resolverlas todas y de forma secuencial, con todos los puntos incluidos.
+
+## 2026-11-15 — Fuente de requisitos
+
+- **Elegido**: `solo_lectura/flujo_agente_busqueda_laboral.md` v1.1 es la fuente de verdad del comportamiento del agente. Los otros archivos de `solo_lectura/` son insumo de diseño y del perfil del usuario 1.
+- **Descartado**: tratar `agente.md` (proyecto previo en ChatGPT) como requisitos.
+- **Por qué**: el flujo v1.1 es más reciente y es el diseño pensado para este agente.
+
+## 2026-11-15 — Autonomía configurable (reemplaza la decisión del 2026-11-14)
+
+- **Elegido**: la autonomía es un parámetro de 0 a 100 % que cada usuario configura, con reglas que valen en todo nivel (veracidad, bloqueos operativos, antiduplicación, trazabilidad).
+- **Descartado**: una regla fija de "automático con reglas" para todos.
+- **Por qué**: lo pide el flujo v1.1 (requisito confirmado el 15-nov).
+- **Caso del usuario 1**: el 14-nov eligió "automático con reglas" (equivale aprox. a 75 %). Sus condiciones de auto-envío son un borrador en `$AGENTE0_DATOS/origen/` (material de partida) §2. Hasta que confirme nivel y condiciones, el agente prepara y no envía.
+- **Riesgo**: portales como LinkedIn pueden restringir cuentas que usan automatización. Probar primero en portales de bajo riesgo y no enviar volumen alto de una vez.
+
+## 2026-11-15 — Aprendizaje por resultados
+
+- **Elegido**: el contacto para una primera entrevista crea un solo evento de recompensa, asociado a las respuestas efectivamente enviadas. Sin castigo automático por silencio o rechazo. Asociación, no causalidad.
+- **Descartado**: premiar respuestas no enviadas; penalizar postulaciones sin respuesta; presumir que una respuesta aislada causó el resultado.
+- **Por qué**: requisito confirmado en el flujo v1.1.
+- **Pendiente**: valor de la recompensa, otros hitos, suavización y umbrales.
+
+## 2026-11-14 — Alcance para el usuario 1
+
+- **Elegido**: las cuatro etapas (buscar ofertas, adaptar CV y carta, enviar, seguimiento). Quedan cubiertas por las operaciones y el subflujo del flujo v1.1.
+- **Descartado**: ninguna etapa.
+- **Por qué**: quiere un proceso de punta a punta, no solo borradores.
+
+## 2026-11-14 — Solo lectura
+
+- **Elegido**: `solo_lectura/` no se edita. El trabajo propio del agente vive en la raíz y en `docs/`.
+- **Descartado**: reescribir o resumir los archivos originales.
+- **Por qué**: son el contexto base que entregó el usuario 1. Las contradicciones entre ellos están en `$AGENTE0_DATOS/origen/` (material de partida) §16 y se resuelven con él.
+
+## Pendientes de decisión
+
+Ninguna: D1 a D18 están cerradas (2026-11-15). Queda abierto el mecanismo de intercambio de señales de D18, que se define al construirlo, y las confirmaciones del usuario 1 de la Fase 2 en `docs/tracking/todos.md`.

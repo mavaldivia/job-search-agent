@@ -1,0 +1,20 @@
+# Datos personales de usuarios (el agente es multiusuario)
+solo_lectura/
+docs/usuarios/
+
+# Secretos y credenciales
+.env
+.env.*
+
+# Sistema
+.DS_Store
+
+# Python y configuración local
+__pycache__/
+.pytest_cache/
+*.egg-info/
+.claude/settings.local.json
+
+# Preferencias locales y registro de sesiones (datos personales)
+CLAUDE.local.md
+docs/tracking/records.md
