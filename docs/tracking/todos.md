@@ -24,9 +24,6 @@
 
 > Objetivo: la versión mínima que haga el flujo completo con un usuario, subiendo la autonomía de forma gradual, antes de abrir el agente a más personas. Cada ítem espera a las decisiones y confirmaciones de las que depende.
 
-- [ ] **B8 · Primera postulación asistida (autonomía 0 %)** [dep: B5, B7, D4, D12, D14, U5]: Postular por navegación web a una vacante real con confirmación en cada paso, en un portal de bajo riesgo. Guardar la instantánea y pasar a postulado solo con confirmación del sitio. (I:10 C:5 H:9 → 1.90)
-  - Claude: validar la sesión del portal antes de partir (si no hay, pausar y avisar), operar el navegador, pedir confirmación en cada paso y registrar el resultado.
-  - Usuario: elegir el portal de la prueba (bajo riesgo, ver `$AGENTE0_DATOS/origen/` (material de partida) §8.4), iniciar sesión a mano en él y aprobar cada paso.
 - [ ] **B9 · Actualizar estado y recompensa** [dep: B8, D16]: Cambio de estado con historial y un solo evento de recompensa por hito, ligado a las respuestas realmente enviadas. Probar con un contacto simulado y comprobar que repetir el aviso no duplica el premio. (I:8 C:4 H:7 → 1.87)
   - Claude: implementar y probar.
   - Usuario: informar el primer resultado real cuando ocurra.
@@ -38,6 +35,9 @@
 - [ ] **B16 · Simulación de configuración** [dep: B6, B11]: Función "¿y si...?" sobre el último ranking: al cambiar umbrales, renta mínima, pesos o nivel, mostrar qué vacantes pasarían a cumplir o dejarían de cumplir las condiciones de auto-envío y cuáles irían a la cola de aprobación, sin modificar la configuración vigente. Pedido por el usuario 1 en U4. (I:6 C:3 H:7 → 2.16)
   - Claude: implementar la simulación sobre las evidencias guardadas de cada puntaje y probarla con el primer ranking real.
   - Usuario: probarla y ajustar los umbrales con ella antes de subir el nivel.
+- [ ] **B17 · Conversión automática de renta en formularios** [dep: B8]: Cuando un formulario pida la renta en otra moneda o base (por ejemplo bruto en USD) y la biblioteca no tenga esa cifra, que el sistema la calcule solo con el dólar del día y los descuentos legales vigentes, y deje el monto para aprobación según el nivel de autonomía. Pedido por el usuario 1 en B8, donde se hizo a mano. Es una decisión de diseño: presentar 2 opciones (módulo de código con tablas actualizables vs. procedimiento de la skill con consulta a fuentes oficiales) antes de construir. (I:6 C:3 H:7 → 2.16)
+  - Claude: presentar las dos opciones con tradeoffs, recomendar y, con la confirmación del usuario, implementar y probar.
+  - Usuario: elegir la opción y confirmar los supuestos de descuentos (AFP y plan de salud).
 - [ ] **B12 · Postulaciones con autonomía alta del usuario 1** [dep: B11, B9]: Subir su nivel de forma gradual hasta el que confirmó en U4, con revisión semanal de lo enviado. (I:9 C:3 H:7 → 2.65)
   - Claude: operar según el nivel y preparar el resumen semanal.
   - Usuario: revisar lo enviado cada semana.
