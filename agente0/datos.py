@@ -4,8 +4,8 @@ from pathlib import Path
 from agente0.esquemas import Configuracion
 
 ENV_VAR = "AGENTE0_DATOS"
-DIRECTORIOS = ("cv/base", "respuestas", "postulaciones", "origen")
-ARCHIVO_CONFIGURACION = "configuracion.json"
+DIRECTORIOS = ("perfil", "configuracion", "cv/base", "respuestas", "postulaciones", "origen", "respaldos")
+ARCHIVO_CONFIGURACION = "configuracion/configuracion.json"
 REPO = Path(__file__).resolve().parent.parent
 
 
@@ -17,7 +17,7 @@ def datos_dir(*, debe_existir: bool = True) -> Path:
     valor = os.environ.get(ENV_VAR)
     if not valor:
         raise DatosError(
-            f"{ENV_VAR} no está definida: indica la carpeta de datos del usuario (sugerida: ~/Agente0-datos)."
+            f"{ENV_VAR} no está definida: indica la carpeta de datos del usuario (sugerida: Agente0_datos/<usuario>, junto al repo)."
         )
     raiz = Path(valor).expanduser().resolve()
     if raiz == REPO or REPO in raiz.parents:

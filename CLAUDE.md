@@ -8,7 +8,7 @@ Arquitectura (D1): agente sobre Claude Code, a demanda. Cada operación del men�
 
 Datos (D2): un archivo por entidad y por usuario (`md` para lo narrativo, JSON o CSV para lo estructurado), ID estable por postulación, instantáneas inmutables y CV base y respuestas tipo versionados en carpetas con fecha. Sin base de datos.
 
-Aislamiento (D3): una instalación por persona. Este repo guarda solo skills y reglas; los datos de cada usuario viven en un directorio propio fuera del repo, indicado por la variable de entorno `AGENTE0_DATOS` (una carpeta = una persona; sugerida `~/Agente0-datos/`; sin variable o dentro del repo, el agente no parte). Estructura y su creación: `python -m agente0 init` (ver `docs/contexto_completo.md` §9). El perfil del usuario 1 de partida está en `$AGENTE0_DATOS/origen/`. El agente no guarda credenciales en archivos: usa la sesión abierta del usuario en el navegador y, si un portal pide login, pausa. Se pide consentimiento antes de la primera acción externa en cada portal.
+Aislamiento (D3): una instalación por persona. Este repo guarda solo skills y reglas; los datos de cada usuario viven en un directorio propio fuera del repo, indicado por la variable de entorno `AGENTE0_DATOS` (una carpeta = una persona; sugerida `Agente0_datos/<usuario>/`, una carpeta por persona junto al repo, no dentro; sin variable o dentro del repo, el agente no parte). Estructura y su creación: `python -m agente0 init` (ver `docs/contexto_completo.md` §9). El perfil del usuario 1 de partida está en `$AGENTE0_DATOS/origen/`. El agente no guarda credenciales en archivos: usa la sesión abierta del usuario en el navegador y, si un portal pide login, pausa. Se pide consentimiento antes de la primera acción externa en cada portal.
 
 Navegador (D4): la extensión de Chrome sobre el Chrome real y la sesión del usuario. Ante CAPTCHA, login, 2FA, términos o campos imposibles, el agente pausa y pide intervención. Cada portal tiene un riesgo de bloqueo; los envíos van sin ráfagas y con límite diario por portal.
 
@@ -18,7 +18,7 @@ Navegador (D4): la extensión de Chrome sobre el Chrome real y la sesión del us
 |---|---|
 | `solo_lectura/flujo_agente_busqueda_laboral.md` | Requisitos: flujo v1.1 (diagrama, aprendizaje, autonomía). Fuente de verdad del comportamiento del agente |
 | `docs/contexto_completo.md` | Diseño extenso del agente: operaciones, subflujo, aprendizaje, autonomía, entidades, pendientes, riesgos |
-| `agente0/`, `tests/` | Código de apoyo para las skills (ruta de datos, estructura, ID de postulación, esquema de configuración) y sus pruebas de integración. Entorno: conda `revenAI`; `python -m pytest` |
+| `agente0/`, `tests/` | Código de apoyo para las skills (ruta de datos, estructura, ID de postulación, esquema de configuración, límites de tamaño de CV) y sus pruebas de integración. Entorno: conda `revenAI`; `python -m pytest` |
 | `$AGENTE0_DATOS/` (fuera del repo) | Datos de cada usuario (perfil, intereses, configuración, respuestas tipo, historial). Si el usuario trae material previo, queda en `$AGENTE0_DATOS/origen/` |
 | `docs/onboarding.md` | Banco de preguntas del onboarding y operación "Actualizar perfil" |
 | `docs/decisiones.md` | Decisiones tomadas y descartadas |

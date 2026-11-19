@@ -16,18 +16,23 @@ def _cli(raiz, *args: str, entrada: str = "") -> subprocess.CompletedProcess:
     )
 
 
+def _perfil(raiz, texto: str) -> None:
+    (raiz / "perfil").mkdir(exist_ok=True)
+    (raiz / "perfil" / "perfil.md").write_text(texto, encoding="utf-8")
+
+
 def test_sin_bitacora_ni_perfil_no_hay_fecha(tmp_path):
     assert fecha_ultima_revision(tmp_path) is None
 
 
 def test_sin_bitacora_usa_la_fecha_del_onboarding(tmp_path):
-    (tmp_path / "perfil.md").write_text("# Perfil\n\nonboarding_completo: 2026-11-16\n\n## E1\n", encoding="utf-8")
+    _perfil(tmp_path, "# Perfil\n\nonboarding_completo: 2026-11-16\n\n## E1\n")
 
     assert fecha_ultima_revision(tmp_path) == date(2026, 11, 16)
 
 
 def test_la_ultima_revision_registrada_manda_sobre_el_onboarding(tmp_path):
-    (tmp_path / "perfil.md").write_text("onboarding_completo: 2026-11-16\n", encoding="utf-8")
+    _perfil(tmp_path, "onboarding_completo: 2026-11-16\n")
     registrar_revision(tmp_path, Revision(fecha=date(2026, 11, 20), modo="cuentame"))
     registrar_revision(
         tmp_path,

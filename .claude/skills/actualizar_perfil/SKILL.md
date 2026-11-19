@@ -11,9 +11,9 @@ Alcance: experiencia reciente (secciones E# de `perfil.md`). Intereses y configu
 
 ## 0. Preparación
 
-1. Comprobar que `AGENTE0_DATOS` existe, que `$AGENTE0_DATOS/perfil.md` existe y que trae `onboarding_completo`. Si falta algo, decir que primero va el onboarding y terminar.
-2. Leer `perfil.md` completo (incluidos los límites de veracidad E12 y las brechas E13) y `configuracion.json`.
-3. Obtener la fecha de la última revisión: `python -m agente0 revision ultima` (usa la bitácora `revisiones_perfil.jsonl`; sin bitácora, la fecha del onboarding).
+1. Comprobar que `AGENTE0_DATOS` existe, que `$AGENTE0_DATOS/perfil/perfil.md` existe y que trae `onboarding_completo`. Si falta algo, decir que primero va el onboarding y terminar.
+2. Leer `perfil.md` completo (incluidos los límites de veracidad E12 y las brechas E13) y `configuracion/configuracion.json`.
+3. Obtener la fecha de la última revisión: `python -m agente0 revision ultima` (usa la bitácora `perfil/revisiones_perfil.jsonl`; sin bitácora, la fecha del onboarding).
 
 ## 1. Entrada
 
@@ -69,7 +69,7 @@ Preguntar por los más relevantes, hasta 3 por vuelta, y consultar si se sigue c
 - Si un dato nuevo contradice uno existente, mostrar ambos y que el usuario decida cuál queda. No pisar en silencio; el valor anterior va en el resumen de la revisión (§6).
 - No inferir cifras ni completar datos. Respetar los límites de veracidad E12: no proponer redacciones que los rompan.
 - Un dato que no calza en ninguna sección E# o que es de intereses o configuración se anota aparte y se deriva a "Actualizar configuración".
-- **Diario de vida laboral**: lo que el usuario dice que es contexto de cómo trabaja y no material de CV va a `$AGENTE0_DATOS/diario.md` (se crea si no existe), con fecha, texto, fuente y la marca "como diario y no como hito para el CV". Nada del diario entra al CV ni a los formularios salvo que el usuario lo marque como hito y se promueva a `perfil.md`. El detalle técnico interno de productos (configuraciones, tablas de prueba) no se guarda en `perfil.md`: si el usuario lo pide, va al diario.
+- **Diario de vida laboral**: lo que el usuario dice que es contexto de cómo trabaja y no material de CV va a `$AGENTE0_DATOS/perfil/diario.md` (se crea si no existe), con fecha, texto, fuente y la marca "como diario y no como hito para el CV". Nada del diario entra al CV ni a los formularios salvo que el usuario lo marque como hito y se promueva a `perfil.md`. El detalle técnico interno de productos (configuraciones, tablas de prueba) no se guarda en `perfil.md`: si el usuario lo pide, va al diario.
 - Un md de material previo (`solo_lectura/` u `origen/`) es insumo, no verdad: puede traer nombres de producto, idiomas o cifras mal atribuidos. Cada dato se confirma y, si el usuario lo corrige o lo niega, se registra la negación en la sección que corresponda cuando evita que el md se use después (por ejemplo, un idioma que no habla).
 
 ## 6. Cierre

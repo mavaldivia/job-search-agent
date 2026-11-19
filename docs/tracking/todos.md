@@ -24,9 +24,6 @@
 
 > Objetivo: la versión mínima que haga el flujo completo con un usuario, subiendo la autonomía de forma gradual, antes de abrir el agente a más personas. Cada ítem espera a las decisiones y confirmaciones de las que depende.
 
-- [ ] **B3 · CV base del usuario 1 y versionado** [dep: B2, D7]: Generar el CV base y su versión ATS con el formato elegido, con versionado y comparación entre versiones. (I:9 C:4 H:9 → 2.25)
-  - Claude: proponer la instalación de XeLaTeX y las fuentes de la plantilla (no están instaladas), investigar buenas prácticas ATS en `docs/investigacion_cv_ats.md` (documento vivo) y dejar su actualización como skill `investigar_cv`, generar `base_ats.tex`, compilar, revisar el render, auditar cada afirmación contra el perfil, definir los límites de caracteres y líneas por bloque con su script de verificación y pasar un subagente revisor independiente (decisión B3 del 2026-11-18).
-  - Usuario: aprobar la instalación y el CV base.
 - [ ] **B4 · Registro de postulaciones, estados y detalle** [dep: B1, D5, D14]: Registro con instantáneas inmutables (CV, preguntas, respuestas literales, evidencia, nivel de autonomía) e historial de transiciones. Cargar el historial del usuario 1 (`$AGENTE0_DATOS/origen/` (material de partida) §9) como postulaciones ya hechas. (I:9 C:4 H:9 → 2.25)
   - Claude: implementar el registro y la carga inicial.
   - Usuario: revisar la carga del historial.

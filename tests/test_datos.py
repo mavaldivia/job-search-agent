@@ -77,7 +77,7 @@ def test_datos_dir_devuelve_la_carpeta_del_usuario(monkeypatch, tmp_path):
 
 
 def test_cli_init_crea_la_estructura_en_la_ruta_de_la_variable(tmp_path):
-    raiz = tmp_path / "Agente0-datos"
+    raiz = tmp_path / "Agente0_datos"
 
     resultado = _cli({ENV_VAR: str(raiz)}, "init")
 

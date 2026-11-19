@@ -290,25 +290,28 @@ Criterios de aceptación: configurable desde el onboarding y desde "Actualizar c
 
 Son nombres sugeridos; no son tablas ni componentes definidos por el autor del esquema.
 
-**Estructura en disco (B1, 2026-11-15)**: una carpeta por persona, indicada por `AGENTE0_DATOS` (sugerida `~/Agente0-datos/`), fuera del repo. `python -m agente0 init` crea las carpetas y `configuracion.json` con valores por defecto, sin pisar lo existente. El resto de los archivos lo crea la operación que los usa.
+**Estructura en disco (B1, 2026-11-15)**: una carpeta por persona, indicada por `AGENTE0_DATOS` (sugerida `Agente0_datos/<usuario>/`, junto al repo), fuera del repo. `python -m agente0 init` crea las carpetas y `configuracion.json` con valores por defecto, sin pisar lo existente. El resto de los archivos lo crea la operación que los usa.
 
 ```
 $AGENTE0_DATOS/
-  perfil.md, intereses.md          (B2: solo lo confirmado; perfil.md incluye también las respuestas de configuración inicial C1 a C12 hasta que B6 y B11 definan su esquema)
-  diario.md                        (B15: diario de vida laboral; contexto fechado que no entra al CV ni a formularios salvo que el usuario lo promueva a perfil.md)
-  revisiones_perfil.jsonl          (B15: append-only, una línea por revisión de "Actualizar perfil"; su última fecha es el reloj del recordatorio de experiencia)
-  configuracion.json               (autonomía, X de recordatorios, posponer; después umbrales y límites por portal)
-  recordatorios.json               (B10)
-  empleos.csv                      (B6: potenciales; columna postulacion_id)
-  cv/base/<fecha>/                 (B3: .tex, visual.pdf, ats.pdf)
+  perfil/
+    perfil.md, intereses.md        (B2: solo lo confirmado; perfil.md incluye también las respuestas de configuración inicial C1 a C12 hasta que B6 y B11 definan su esquema)
+    diario.md                      (B15: diario de vida laboral; contexto fechado que no entra al CV ni a formularios salvo que el usuario lo promueva a perfil.md)
+    revisiones_perfil.jsonl        (B15: append-only, una línea por revisión de "Actualizar perfil"; su última fecha es el reloj del recordatorio de experiencia)
+  configuracion/
+    configuracion.json             (autonomía, X de recordatorios, posponer; después umbrales y límites por portal)
+    recordatorios.json             (B10)
+  empleos/empleos.csv              (B6: potenciales; columna postulacion_id)
+  cv/base/<fecha>/                 (B3: .tex, PDF ATS y visual, limites.json, auditoría de veracidad)
   respuestas/<categoria>/v001_<fecha>.md
   postulaciones/<id>/              (B4)
     postulacion.json               (estado actual)
     eventos.jsonl                  (append-only, incluye recompensas)
     cv/                            (CV adaptado)
     instantanea/                   (inmutable: CV, preguntas, respuestas literales, evidencia)
-  estadisticas.json                (derivable, recalculable)
+    estadisticas.json              (derivable, recalculable)
   origen/                          (material de partida del onboarding, no confirmado)
+  respaldos/                       (copias de seguridad que el usuario quiera guardar)
 ```
 
 ID de postulación: `<empresa>-<cargo>-<hash de 6 caracteres de la URL canónica>`. La misma vacante da el mismo ID aunque se detecte otro día o con parámetros de seguimiento; la URL se normaliza (minúsculas, sin barra final ni fragmento, sin `utm_*`).
