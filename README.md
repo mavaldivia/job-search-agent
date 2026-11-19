@@ -2,7 +2,7 @@
 
 Agente que apoya y automatiza la búsqueda laboral de cualquier persona que quiera usarlo: mantiene el perfil del usuario, gestiona oportunidades, adapta el CV por vacante, asiste o ejecuta las postulaciones, registra el estado de cada proceso y aprende de los resultados reales. El usuario decide cuánto delega.
 
-**Estado**: especificación funcional y decisiones de diseño cerradas (D1 a D18). Fase 2 cerrada (U6, biblioteca de respuestas tipo del primer usuario, aprobada). Construcción en curso (Fase 3): B1, estructura base, B2, onboarding del primer usuario, B3, CV base con verificador de tamaño por bloque, B15, operación "Actualizar perfil", B4, registro de postulaciones con instantánea por intento de envío, B5, biblioteca de respuestas tipo con variantes por familia de cargo, B6, oportunidades, ranking y skill de búsqueda (primer ranking real corrido), B7, adaptación de CV por vacante, B8, primera postulación asistida al 0 % con la skill `postular`, y B9, actualizar estado y recompensa con la skill `actualizar_estado`, hechos.
+**Estado**: especificación funcional y decisiones de diseño cerradas (D1 a D18). Fase 2 cerrada (U6, biblioteca de respuestas tipo del primer usuario, aprobada). Construcción en curso (Fase 3): B1, estructura base, B2, onboarding del primer usuario, B3, CV base con verificador de tamaño por bloque, B15, operación "Actualizar perfil", B4, registro de postulaciones con instantánea por intento de envío, B5, biblioteca de respuestas tipo con variantes por familia de cargo, B6, oportunidades, ranking y skill de búsqueda (primer ranking real corrido), B7, adaptación de CV por vacante, B8, primera postulación asistida al 0 % con la skill `postular`, B9, actualizar estado y recompensa con la skill `actualizar_estado`, y B10, recordatorios al abrir el menú, hechos.
 
 **Arquitectura**: agente sobre Claude Code, a demanda: una skill por operación del menú, archivos locales por usuario y la extensión de Chrome para navegar los portales.
 
@@ -35,7 +35,7 @@ El detalle completo está en [`CLAUDE.md`](CLAUDE.md).
 | `docs/investigacion_cv_ats.md` | Buenas prácticas de CV para ATS y reclutadores; documento vivo que actualiza la skill `investigar_cv` |
 | `docs/tracking/records.md` | Minutas de sesión (local, no versionado) |
 | `.claude/skills/` | Una skill por operación del menú (hoy `actualizar_perfil`, `investigar_cv`, `editar_respuestas`, `actualizar_postulaciones_potenciales`, `adaptar_cv`, `postular` y `actualizar_estado`) |
-| `agente0/`, `tests/` | Código de apoyo (ruta de datos, estructura, ID de postulación, esquema de configuración, bitácora de revisiones del perfil, límites de tamaño de CV, registro de postulaciones, biblioteca de respuestas tipo, oportunidades, ranking y fuentes de búsqueda) y pruebas de integración |
+| `agente0/`, `tests/` | Código de apoyo (ruta de datos, estructura, ID de postulación, esquema de configuración, bitácora de revisiones del perfil, límites de tamaño de CV, registro de postulaciones, recordatorios, biblioteca de respuestas tipo, oportunidades, ranking y fuentes de búsqueda) y pruebas de integración |
 | `$AGENTE0_DATOS/` | Datos de cada usuario, fuera del repo (sugerida `Agente0_datos/<usuario>/`, junto al repo). `python -m agente0 init` crea la estructura |
 | `solo_lectura/` | Requisitos (flujo v1.1) y material previo; local, no versionado y no se edita |
 
@@ -51,6 +51,7 @@ El detalle completo está en [`CLAUDE.md`](CLAUDE.md).
 export AGENTE0_DATOS=/ruta/a/Agente0_datos/<usuario>   # una carpeta = una persona, fuera del repo
 python -m agente0 init                 # crea la estructura sin pisar lo existente
 python -m agente0 revision ultima      # fecha de la última revisión del perfil
+python -m agente0 recordatorio pendientes   # casos con la ventana vencida; también preguntado | operacion <caso>
 python -m agente0 cv calibrar cv.tex 2        # fija los límites por bloque de un CV (2 páginas)
 python -m agente0 cv verificar cv.tex limites.json   # revisa tamaño, páginas, fuentes y extracción de texto
 python -m agente0 postulacion crear < vacante.json   # registra una postulación; luego ver | intentar | confirmar | fallido | evento | recompensar | finalizar <id>

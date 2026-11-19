@@ -19,7 +19,7 @@ def test_valores_por_defecto_son_los_de_d15():
     configuracion = Configuracion()
     assert configuracion.autonomia == 0
     assert configuracion.recordatorios_dias.model_dump() == {"experiencia": 15, "cv_base": 30, "configuracion": 60}
-    assert configuracion.posponer_dias == 7
+    assert configuracion.repetir_recordatorio_horas == 24
 
 
 def test_priorizacion_parte_con_los_valores_de_d11_y_u4():

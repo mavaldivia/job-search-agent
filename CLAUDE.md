@@ -2,7 +2,7 @@
 
 Agente que apoya y automatiza la búsqueda laboral de **cualquier persona** que quiera usarlo. Mantiene el perfil del usuario, gestiona oportunidades, adapta el CV por vacante, asiste o ejecuta las postulaciones, registra el estado de cada proceso y aprende de los resultados reales. El usuario decide cuánto delega.
 
-Estado: especificación funcional y decisiones de diseño cerradas (D1 a D18). Construcción en curso: B1 (estructura base), B2 (onboarding del usuario 1), U6 (biblioteca de respuestas tipo aprobada), B15 (Actualizar perfil, skill `actualizar_perfil`) y B4 (registro de postulaciones, sin carga del historial previo) y B5 (biblioteca de respuestas tipo operativa, skill `editar_respuestas`) hechas; B6 (oportunidades, ranking y skill `actualizar_postulaciones_potenciales`; primer ranking real corrido el 2026-11-19 solo con fuentes de riesgo bajo) y B7 (adaptación de CV por vacante, skill `adaptar_cv`, probada con tres vacantes reales) y B8 (primera postulación asistida al 0 %, skill `postular`, probada con una postulación real) y B9 (actualizar estado y recompensa, skill `actualizar_estado`) hechas; el resto de la Fase 3 sigue en `docs/tracking/todos.md`.
+Estado: especificación funcional y decisiones de diseño cerradas (D1 a D18). Construcción en curso: B1 (estructura base), B2 (onboarding del usuario 1), U6 (biblioteca de respuestas tipo aprobada), B15 (Actualizar perfil, skill `actualizar_perfil`) y B4 (registro de postulaciones, sin carga del historial previo) y B5 (biblioteca de respuestas tipo operativa, skill `editar_respuestas`) hechas; B6 (oportunidades, ranking y skill `actualizar_postulaciones_potenciales`; primer ranking real corrido el 2026-11-19 solo con fuentes de riesgo bajo) y B7 (adaptación de CV por vacante, skill `adaptar_cv`, probada con tres vacantes reales) y B8 (primera postulación asistida al 0 %, skill `postular`, probada con una postulación real) y B9 (actualizar estado y recompensa, skill `actualizar_estado`) y B10 (recordatorios al abrir el menú) hechas; el resto de la Fase 3 sigue en `docs/tracking/todos.md`.
 
 Arquitectura (D1): agente sobre Claude Code, a demanda. Cada operación del menú es una skill, los datos viven en archivos locales por usuario y el navegador es la extensión de Chrome. No hay ejecución programada; los recordatorios se revisan al abrir el menú.
 
@@ -18,7 +18,7 @@ Navegador (D4): la extensión de Chrome sobre el Chrome real y la sesión del us
 |---|---|
 | `solo_lectura/flujo_agente_busqueda_laboral.md` | Requisitos: flujo v1.1 (diagrama, aprendizaje, autonomía). Fuente de verdad del comportamiento del agente |
 | `docs/contexto_completo.md` | Diseño extenso del agente: operaciones, subflujo, aprendizaje, autonomía, entidades, pendientes, riesgos |
-| `agente0/`, `tests/` | Código de apoyo para las skills (ruta de datos, estructura, ID de postulación, esquema de configuración, límites de tamaño de CV, registro de postulaciones, biblioteca de respuestas tipo, oportunidades, ranking y fuentes de búsqueda) y sus pruebas de integración. Entorno: conda `revenAI`; `python -m pytest` |
+| `agente0/`, `tests/` | Código de apoyo para las skills (ruta de datos, estructura, ID de postulación, esquema de configuración, límites de tamaño de CV, registro de postulaciones, recordatorios, biblioteca de respuestas tipo, oportunidades, ranking y fuentes de búsqueda) y sus pruebas de integración. Entorno: conda `revenAI`; `python -m pytest` |
 | `$AGENTE0_DATOS/` (fuera del repo) | Datos de cada usuario (perfil, intereses, configuración, respuestas tipo, historial). Si el usuario trae material previo, queda en `$AGENTE0_DATOS/origen/` |
 | `docs/onboarding.md` | Banco de preguntas del onboarding y operación "Actualizar perfil" |
 | `docs/decisiones.md` | Decisiones tomadas y descartadas |
@@ -35,7 +35,7 @@ Navegador (D4): la extensión de Chrome sobre el Chrome real y la sesión del us
 
 ## Flujo
 
-1. **Inicio**: ¿primera vez? Sí: onboarding (experiencia, intereses, configuración inicial con el nivel de autonomía). No: menú.
+1. **Inicio**: ¿primera vez? Sí: onboarding (experiencia, intereses, configuración inicial con el nivel de autonomía). No: revisar recordatorios vencidos (`python -m agente0 recordatorio pendientes`, D15) y luego menú.
 2. **Operaciones habituales** (seis):
    1. Actualizar perfil `(*)`: relato libre del usuario o preguntas de profundización, ver `docs/onboarding.md` §3.
    2. Actualizar postulaciones potenciales, que lleva al subflujo de postulación.

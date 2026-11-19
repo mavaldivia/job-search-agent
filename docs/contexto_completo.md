@@ -269,8 +269,8 @@ Criterios de aceptación: configurable desde el onboarding y desde "Actualizar c
 
 ## 8. Recordatorios
 
-- `(*)`: cada `X` días preguntar si se quiere actualizar experiencia, CV base y configuración. Aceptar, posponer o descartar. Se recomienda **preguntar, no modificar** por cuenta propia.
-- **D15 (2026-11-15)**: un `X` por caso, medido desde la última vez que se realizó la operación: experiencia 15 días, CV base 30, configuración 60. Se revisa al abrir el menú, con una pregunta por caso vencido. Posponer reaparece a los 7 días; descartar reinicia el reloj con el `X` completo; nunca bloquea el menú ni modifica nada solo. Configurables por el usuario. Detalle en `decisiones.md`.
+- `(*)`: cada `X` días preguntar si se quiere actualizar experiencia, CV base y configuración. Aceptar o "ahora no". Se recomienda **preguntar, no modificar** por cuenta propia.
+- **D15 (2026-11-15)**: un `X` por caso, medido desde la última vez que se realizó la operación: experiencia 15 días, CV base 30, configuración 60. Se revisa al abrir el menú, con una pregunta por caso vencido y como máximo una vez cada 24 h por caso. "Ahora no" no reinicia el reloj: el caso sigue vencido y vuelve en la próxima revisión (revisión del 2026-11-19: descartar y posponer son lo mismo). Nunca bloquea el menú ni modifica nada solo. Configurables por el usuario. Detalle en `decisiones.md`.
 - `(**)`: las respuestas tipo son una base reutilizable; no reemplazan verificar que cada una aplica a la pregunta concreta.
 
 ---
@@ -305,8 +305,8 @@ $AGENTE0_DATOS/
     diario.md                      (B15: diario de vida laboral; contexto fechado que no entra al CV ni a formularios salvo que el usuario lo promueva a perfil.md)
     revisiones_perfil.jsonl        (B15: append-only, una línea por revisión de "Actualizar perfil"; su última fecha es el reloj del recordatorio de experiencia)
   configuracion/
-    configuracion.json             (autonomía, X de recordatorios, posponer y el bloque `priorizacion` de B6: pesos, umbrales, Top, ventana, filtros; después límites por portal)
-    recordatorios.json             (B10)
+    configuracion.json             (autonomía, X de recordatorios, repetición de recordatorios en horas y el bloque `priorizacion` de B6: pesos, umbrales, Top, ventana, filtros; después límites por portal)
+    recordatorios.json             (B10: fecha de la última operación de CV base y de configuración, y última pregunta por caso; el reloj de experiencia está en revisiones_perfil.jsonl)
   perfil/fuentes.json              (B6: fuentes de búsqueda del usuario con método, riesgo y si está activa)
   oportunidades/<id>/              (B6: oportunidad.json con estado, vigencia y evaluación; eventos.jsonl; publicacion.txt con el texto literal puntuado; mismo ID que la postulación)
   ranking/<fecha-hora>.json        (B6: una lista por corrida; la última es la base de la siguiente)
@@ -347,7 +347,7 @@ Las 18 decisiones de la Fase 1 están cerradas (2026-11-15). Cada una se present
 - Aprendizaje entre usuarios (D18, 2026-11-15): opt-in apagado por defecto, con señales agregadas y anonimizadas (solo conteos por categoría de respuesta y familia de cargo, nunca texto literal ni datos del usuario). Exige un almacén central que hoy no existe: su mecanismo queda pendiente y reabre D1 y D3 al construirlo.
 - Medición del aprendizaje (D17, 2026-11-15): antes y después con línea base propia en ventanas de 4 a 6 semanas; contactos por hora de esfuerzo y tasa de contacto; "sin conclusión" con menos de 5 contactos; sin afirmar causalidad.
 - Recompensa (D16, 2026-11-15): solo la primera entrevista puntúa (+1); tasa suavizada desde la tasa base del usuario, umbral de 8 usos comparables para recomendar y sin castigo por rechazo ni silencio. Los demás hitos se registran como eventos y no puntúan.
-- Recordatorios (D15, 2026-11-15): un `X` por caso medido desde la última vez que se hizo la operación (experiencia 15, CV base 30, configuración 60 días); posponer a 7 días, descartar reinicia el reloj; nunca bloquea ni modifica solo.
+- Recordatorios (D15, 2026-11-15): un `X` por caso medido desde la última vez que se hizo la operación (experiencia 15, CV base 30, configuración 60 días); "ahora no" no reinicia el reloj y el caso vuelve en la próxima revisión, como máximo cada 24 h por caso (revisión 2026-11-19); nunca bloquea ni modifica solo.
 - Errores y reintentos (D14, 2026-11-15): la confirmación visible del sitio basta para `POSTULADO`; sin ella, `ENVIO_INTENTADO` y verificación en el portal o el correo antes de reintentar; mismo ID por reintento y nunca reenviar sin verificar.
 - Inicio de postulaciones (D13, 2026-11-15): el subflujo parte solo tras el ranking según el nivel de autonomía, con el Top 10 en orden de puntaje y hasta el límite diario; el usuario puede saltar o descartar vacantes. Sin selección previa obligatoria.
 - Autonomía (D12, 2026-11-15): niveles fijos 0, 25, 50, 75 y 100 %, con condiciones de auto-envío al 75 %, reglas siempre vigentes, excepciones y tope de nivel por portal, límites diarios por riesgo, vista previa y aviso antes de activar 100 %.

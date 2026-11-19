@@ -33,4 +33,4 @@ Diseño: decisión B3 (2026-11-18) y D15 en `docs/decisiones.md`. Esta skill es 
 
 ## 4. Cierre
 
-Decir en una o dos líneas qué cambió en el documento y qué se propone al CV. Hasta que exista B10, la fecha de esta operación es "Última actualización" del documento; B10 la registra en el reloj de CV base.
+Decir en una o dos líneas qué cambió en el documento y qué se propone al CV. Al terminar, registrar la ejecución en el reloj de CV base con `python -m agente0 recordatorio operacion cv_base` (D15).

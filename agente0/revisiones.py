@@ -39,6 +39,10 @@ def fecha_ultima_revision(raiz: Path) -> date | None:
         lineas = [linea for linea in bitacora.read_text(encoding="utf-8").splitlines() if linea.strip()]
         if lineas:
             return Revision.model_validate_json(lineas[-1]).fecha
+    return fecha_onboarding(raiz)
+
+
+def fecha_onboarding(raiz: Path) -> date | None:
     perfil = raiz / "perfil" / "perfil.md"
     if perfil.exists():
         coincidencia = _ONBOARDING.search(perfil.read_text(encoding="utf-8"))

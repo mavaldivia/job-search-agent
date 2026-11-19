@@ -2,13 +2,14 @@ import json
 import sys
 from pathlib import Path
 
-from agente0 import fuentes, oportunidades, postulaciones, ranking, respuestas
+from agente0 import fuentes, oportunidades, postulaciones, ranking, recordatorios, respuestas
 from agente0.cv_limites import calibrar, cargar_limites, verificar
 from agente0.datos import DatosError, cargar_configuracion, crear_estructura, datos_dir
 from agente0.revisiones import Revision, fecha_ultima_revision, registrar_revision
 
 USO = (
     "uso: python -m agente0 init | configuracion ver | revision ultima | revision registrar (JSON por stdin)"
+    " | recordatorio pendientes | recordatorio preguntado|operacion <experiencia|cv_base|configuracion>"
     " | cv calibrar <archivo.tex> <paginas> | cv verificar <archivo.tex> <limites.json>"
     " | postulacion crear | postulacion ver|intentar|confirmar|fallido|evento|recompensar|finalizar <id> (JSON por stdin salvo ver y recompensar)"
     " | respuestas listar|pendientes | respuestas ver|versiones <categoria> [<variante>]"
@@ -23,6 +24,8 @@ ACCIONES_POSTULACION = ("crear", "ver", "intentar", "confirmar", "fallido", "eve
 def main(argv: list[str]) -> int:
     if argv in (["init"], ["configuracion", "ver"], ["revision", "ultima"], ["revision", "registrar"]):
         return _datos(argv)
+    if argv[:1] == ["recordatorio"]:
+        return _recordatorio(argv[1:])
     if argv[:1] == ["postulacion"] and len(argv) in (2, 3) and argv[1] in ACCIONES_POSTULACION:
         return _postulacion(argv[1], argv[2:])
     if argv[:1] == ["respuestas"] and len(argv) >= 2:
@@ -56,6 +59,25 @@ def _datos(argv: list[str]) -> int:
             print(fecha_ultima_revision(datos_dir()) or "sin_revision")
         else:
             registrar_revision(datos_dir(), Revision.model_validate_json(sys.stdin.read()))
+    except (DatosError, ValueError) as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 1
+    return 0
+
+
+def _recordatorio(resto: list[str]) -> int:
+    try:
+        raiz = datos_dir()
+        if resto == ["pendientes"]:
+            vencidos = [p.model_dump(mode="json") for p in recordatorios.pendientes(raiz)]
+            print(json.dumps(vencidos, ensure_ascii=False, indent=2))
+        elif len(resto) == 2 and resto[0] == "preguntado" and resto[1] in recordatorios.CASOS:
+            recordatorios.registrar_pregunta(raiz, resto[1])
+        elif len(resto) == 2 and resto[0] == "operacion" and resto[1] in recordatorios.CASOS:
+            recordatorios.registrar_operacion(raiz, resto[1])
+        else:
+            print(USO, file=sys.stderr)
+            return 2
     except (DatosError, ValueError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 1
