@@ -24,9 +24,6 @@
 
 > Objetivo: la versión mínima que haga el flujo completo con un usuario, subiendo la autonomía de forma gradual, antes de abrir el agente a más personas. Cada ítem espera a las decisiones y confirmaciones de las que depende.
 
-- [ ] **B7 · Adaptación de CV por vacante (paso 0)** [dep: B3, B6]: Adaptar el CV base a una vacante con control de veracidad y un resumen de cambios y brechas. Probar con tres vacantes reales. (I:9 C:4 H:8 → 2.12)
-  - Claude: adaptar dentro de los límites por bloque de B3, compilar, revisar el render y auditar las afirmaciones; subagente revisor solo si la autonomía es 75 % o más.
-  - Usuario: aprobar las tres adaptaciones.
 - [ ] **B8 · Primera postulación asistida (autonomía 0 %)** [dep: B5, B7, D4, D12, D14, U5]: Postular por navegación web a una vacante real con confirmación en cada paso, en un portal de bajo riesgo. Guardar la instantánea y pasar a postulado solo con confirmación del sitio. (I:10 C:5 H:9 → 1.90)
   - Claude: validar la sesión del portal antes de partir (si no hay, pausar y avisar), operar el navegador, pedir confirmación en cada paso y registrar el resultado.
   - Usuario: elegir el portal de la prueba (bajo riesgo, ver `$AGENTE0_DATOS/origen/` (material de partida) §8.4), iniciar sesión a mano en él y aprobar cada paso.
