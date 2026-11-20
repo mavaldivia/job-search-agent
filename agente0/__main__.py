@@ -10,6 +10,7 @@ from agente0 import (
     postulaciones,
     ranking,
     recordatorios,
+    renta,
     respuestas,
     simulacion,
 )
@@ -30,6 +31,8 @@ USO = (
     " | autonomia evaluar <id> (JSON por stdin: portal, juicios) | autonomia matriz [nivel] | autonomia aviso <nivel>"
     " | configuracion editar (JSON por stdin: cambios, confirmacion)"
     " | simulacion (JSON por stdin: cambios; no modifica la configuración)"
+    " | renta factor ver <pais> <liquido> | renta factor guardar (JSON por stdin: pais, factor)"
+    " | renta convertir (JSON por stdin: liquido, pais, a_bruto, tasa)"
 )
 ACCIONES_POSTULACION = ("crear", "ver", "intentar", "confirmar", "fallido", "evento", "recompensar", "finalizar")
 
@@ -53,6 +56,8 @@ def main(argv: list[str]) -> int:
         return _configuracion_editar()
     if argv == ["simulacion"]:
         return _simulacion()
+    if argv[:1] == ["renta"]:
+        return _renta(argv[1:])
     if argv[:1] in (["ranking"], ["fuentes"]) and len(argv) == 2:
         return _ranking_o_fuentes(argv[0], argv[1])
     if len(argv) == 4 and argv[:2] == ["cv", "calibrar"] and argv[3].isdigit():
@@ -249,6 +254,27 @@ def _configuracion_editar() -> int:
 def _simulacion() -> int:
     try:
         _imprimir(simulacion.simular(datos_dir(), json.loads(sys.stdin.read())["cambios"]))
+    except (DatosError, ValueError, TypeError, KeyError, OSError) as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 1
+    return 0
+
+
+def _renta(resto: list[str]) -> int:
+    try:
+        raiz = datos_dir()
+        if len(resto) == 4 and resto[:2] == ["factor", "ver"]:
+            resultado = renta.factor_vigente(raiz, resto[2], float(resto[3]))
+        elif resto == ["factor", "guardar"]:
+            datos = json.loads(sys.stdin.read())
+            resultado = renta.FactorBruto.model_validate(datos["factor"])
+            renta.guardar_factor(raiz, datos["pais"], resultado)
+        elif resto == ["convertir"]:
+            resultado = renta.convertir(raiz, **json.loads(sys.stdin.read()))
+        else:
+            print(USO, file=sys.stderr)
+            return 2
+        _imprimir(resultado)
     except (DatosError, ValueError, TypeError, KeyError, OSError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 1

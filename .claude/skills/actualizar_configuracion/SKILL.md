@@ -1,6 +1,6 @@
 ---
 name: actualizar_configuracion
-description: Operación 5 del menú de Agente0 (Actualizar configuración). Muestra la configuración vigente del usuario y aplica los cambios que pida (nivel de autonomía, condiciones de auto-envío, umbrales de match, renta mínima, límites y topes por portal, excepciones, recordatorios, pesos) sin tocar código, con simulación de qué vacantes cambiarían de destino (B16), vista previa de qué pasa a requerir aprobación y el aviso de D12 antes de activar 100 %. Usar cuando el usuario invoque /actualizar_configuracion, elija "Actualizar configuración" en el menú o acepte el recordatorio de configuración.
+description: Operación 5 del menú de Agente0 (Actualizar configuración). Muestra la configuración vigente del usuario y aplica los cambios que pida (nivel de autonomía, condiciones de auto-envío, umbrales de match, renta mínima, límites y topes por portal, excepciones, recordatorios, pesos, vigencia del factor de conversión de renta) sin tocar código, con simulación de qué vacantes cambiarían de destino (B16), vista previa de qué pasa a requerir aprobación y el aviso de D12 antes de activar 100 %. Usar cuando el usuario invoque /actualizar_configuracion, elija "Actualizar configuración" en el menú o acepte el recordatorio de configuración.
 ---
 
 # actualizar_configuracion

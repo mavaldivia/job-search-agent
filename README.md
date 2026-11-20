@@ -2,7 +2,7 @@
 
 Agente que apoya y automatiza la búsqueda laboral de cualquier persona que quiera usarlo: mantiene el perfil del usuario, gestiona oportunidades, adapta el CV por vacante, asiste o ejecuta las postulaciones, registra el estado de cada proceso y aprende de los resultados reales. El usuario decide cuánto delega.
 
-**Estado**: especificación funcional y decisiones de diseño cerradas (D1 a D18). Fase 2 cerrada (U6, biblioteca de respuestas tipo del primer usuario, aprobada). Construcción en curso (Fase 3): B1, estructura base, B2, onboarding del primer usuario, B3, CV base con verificador de tamaño por bloque, B15, operación "Actualizar perfil", B4, registro de postulaciones con instantánea por intento de envío, B5, biblioteca de respuestas tipo con variantes por familia de cargo, B6, oportunidades, ranking y skill de búsqueda (primer ranking real corrido), B7, adaptación de CV por vacante, B8, primera postulación asistida al 0 % con la skill `postular`, B9, actualizar estado y recompensa con la skill `actualizar_estado`, B10, recordatorios al abrir el menú, B11, autonomía configurable con la skill `actualizar_configuracion` (probada con datos reales al 25 y al 75 %), y B16, simulación de configuración («¿y si...?» sobre las vacantes evaluadas), hechos.
+**Estado**: especificación funcional y decisiones de diseño cerradas (D1 a D18). Fase 2 cerrada (U6, biblioteca de respuestas tipo del primer usuario, aprobada). Construcción en curso (Fase 3): B1, estructura base, B2, onboarding del primer usuario, B3, CV base con verificador de tamaño por bloque, B15, operación "Actualizar perfil", B4, registro de postulaciones con instantánea por intento de envío, B5, biblioteca de respuestas tipo con variantes por familia de cargo, B6, oportunidades, ranking y skill de búsqueda (primer ranking real corrido), B7, adaptación de CV por vacante, B8, primera postulación asistida al 0 % con la skill `postular`, B9, actualizar estado y recompensa con la skill `actualizar_estado`, B10, recordatorios al abrir el menú, B11, autonomía configurable con la skill `actualizar_configuracion` (probada con datos reales al 25 y al 75 %), B16, simulación de configuración («¿y si...?» sobre las vacantes evaluadas), y B17, conversión de renta (factor líquido a bruto guardado por país y tasa de cambio buscada cada vez), hechos.
 
 **Arquitectura**: agente sobre Claude Code, a demanda: una skill por operación del menú, archivos locales por usuario y la extensión de Chrome para navegar los portales.
 
@@ -35,7 +35,7 @@ El detalle completo está en [`CLAUDE.md`](CLAUDE.md).
 | `docs/investigacion_cv_ats.md` | Buenas prácticas de CV para ATS y reclutadores; documento vivo que actualiza la skill `investigar_cv` |
 | `docs/tracking/records.md` | Minutas de sesión (local, no versionado) |
 | `.claude/skills/` | Una skill por operación del menú (hoy `actualizar_perfil`, `investigar_cv`, `editar_respuestas`, `actualizar_postulaciones_potenciales`, `adaptar_cv`, `postular`, `actualizar_estado` y `actualizar_configuracion`) |
-| `agente0/`, `tests/` | Código de apoyo (ruta de datos, estructura, ID de postulación, esquema de configuración, bitácora de revisiones del perfil, límites de tamaño de CV, registro de postulaciones, recordatorios, biblioteca de respuestas tipo, oportunidades, ranking, fuentes de búsqueda, compuerta de autonomía, edición de la configuración y simulación de configuración) y pruebas de integración |
+| `agente0/`, `tests/` | Código de apoyo (ruta de datos, estructura, ID de postulación, esquema de configuración, bitácora de revisiones del perfil, límites de tamaño de CV, registro de postulaciones, recordatorios, biblioteca de respuestas tipo, oportunidades, ranking, fuentes de búsqueda, compuerta de autonomía, edición de la configuración, simulación de configuración y conversión de renta) y pruebas de integración |
 | `$AGENTE0_DATOS/` | Datos de cada usuario, fuera del repo (sugerida `Agente0_datos/<usuario>/`, junto al repo). `python -m agente0 init` crea la estructura |
 | `solo_lectura/` | Requisitos (flujo v1.1) y material previo; local, no versionado y no se edita |
 
@@ -59,6 +59,7 @@ python -m agente0 respuestas listar   # respuestas tipo vigentes; también pendi
 python -m agente0 configuracion ver   # configuración vigente, con los valores iniciales de priorización; también editar (cambio parcial validado)
 python -m agente0 autonomia matriz 75  # qué se hace solo y qué se aprueba en un nivel; también evaluar <id> | aviso 100
 python -m agente0 simulacion < cambios.json   # qué vacantes cambiarían con una configuración hipotética ({"cambios": {...}}); no modifica nada
+python -m agente0 renta convertir < pedido.json   # pasa un líquido a bruto (factor guardado por país) y/o a otra moneda (tasa); también factor ver | guardar
 python -m agente0 oportunidad listar  # vacantes potenciales; también registrar | ver | evaluar | estado
 python -m agente0 ranking generar     # arma el Top con la lista anterior como base; también ultimo
 python -m agente0 fuentes listar      # fuentes de búsqueda del usuario; también guardar | agregar

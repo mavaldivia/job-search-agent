@@ -22,6 +22,16 @@ class RecordatoriosDias(BaseModel):
     configuracion: int = Field(default=60, gt=0)
 
 
+class ConversionRenta(BaseModel):
+    """Cuándo se reutiliza el factor líquido a bruto guardado (B17) en vez de investigarlo de nuevo."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    vigencia_factor_dias: int = Field(default=30, gt=0)
+    # El impuesto es progresivo: el factor solo vale cerca del líquido con que se calculó.
+    banda_monto_pct: float = Field(default=10, ge=0)
+
+
 class Criterio(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -116,6 +126,7 @@ class Configuracion(BaseModel):
     recompensa_primer_contacto: float = Field(default=1.0, gt=0)
     priorizacion: Priorizacion = Field(default_factory=Priorizacion)
     compuerta: Compuerta = Field(default_factory=Compuerta)
+    conversion_renta: ConversionRenta = Field(default_factory=ConversionRenta)
 
     @field_validator("autonomia")
     @classmethod
