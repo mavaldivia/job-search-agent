@@ -76,7 +76,7 @@ def ultimo(raiz: Path) -> Ranking | None:
     return Ranking.model_validate_json(archivos[-1].read_text(encoding="utf-8")) if archivos else None
 
 
-def _puntuar(o: Oportunidad, config: Priorizacion) -> tuple[float, float, float, dict[str, float]]:
+def puntuar(o: Oportunidad, config: Priorizacion) -> tuple[float, float, float, dict[str, float]]:
     puntajes = o.evaluacion.criterios
 
     def promedio(criterios: dict) -> float:
@@ -145,7 +145,7 @@ def generar(raiz: Path, ahora: datetime | None = None) -> Ranking:
         elif o.evaluacion is None or set(o.evaluacion.criterios) != set(config.criterios):
             pendientes.append(o.id)
         else:
-            puntuadas[o.id] = (o, *_puntuar(o, config))
+            puntuadas[o.id] = (o, *puntuar(o, config))
 
     # Un empate lo gana quien ya estaba en el Top: una vacante nueva entra solo si supera a la última.
     orden = sorted(puntuadas, key=lambda i: (-puntuadas[i][3], i not in ids_previos, i))[: config.top]

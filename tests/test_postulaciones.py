@@ -2,6 +2,7 @@ import json
 import os
 import subprocess
 import sys
+from datetime import date
 
 import pytest
 
@@ -29,6 +30,27 @@ def _cli(raiz, *args: str, entrada: str = "") -> subprocess.CompletedProcess:
     return subprocess.run(
         [sys.executable, "-m", "agente0", *args], cwd=REPO, env=env, input=entrada, capture_output=True, text=True
     )
+
+
+PORTAL = "Portal Ejemplo"
+JUICIOS = {
+    "cv_auditado": {"cumple": True, "evidencia": "auditoría aprobada"},
+    "respuestas_documentadas": {"cumple": True, "evidencia": "todas salen de la biblioteca"},
+}
+
+
+def _alistar(raiz) -> None:
+    """Lo que la compuerta exige antes de congelar un envío por CLI: la vacante registrada y el portal en las fuentes."""
+    assert _cli(raiz, "init").returncode == 0
+    vigencia = {"verificada_el": date.today().isoformat(), "fuente": "portal", "evidencia": "botón visible"}
+    vacante = {"empresa": "Acme", "cargo": "Jefe", "url": URL, "vigencia": vigencia}
+    assert _cli(raiz, "oportunidad", "registrar", entrada=json.dumps(vacante)).returncode == 0
+    portal = {"nombre": PORTAL, "tipo": "generalista", "pais": "Chile", "metodo": "web", "riesgo": "bajo"}
+    assert _cli(raiz, "fuentes", "agregar", entrada=json.dumps(portal)).returncode == 0
+
+
+def _solicitud(cv, **extra) -> str:
+    return json.dumps({"portal": PORTAL, "cv": str(cv), "juicios": JUICIOS, "aprobacion": "usuario", **extra})
 
 
 def _envio(tmp_path, autonomia: int = 0) -> Envio:
@@ -247,7 +269,9 @@ def test_el_premio_liga_las_respuestas_del_intento_confirmado_y_no_las_de_otros(
     segundo = _envio(tmp_path).model_copy(
         update={
             "respuestas": [
-                RespuestaEnviada(pregunta="Pretensión de renta", texto="Texto nuevo", respuesta_id="H3", version="v003"),
+                RespuestaEnviada(
+                    pregunta="Pretensión de renta", texto="Texto nuevo", respuesta_id="H3", version="v003"
+                ),
                 RespuestaEnviada(pregunta="Por qué te interesa", texto="Texto libre sin ID"),
             ]
         }
@@ -307,6 +331,7 @@ def test_id_con_ruta_se_rechaza(tmp_path, id_):
 def test_cli_recorre_el_flujo_y_rechaza_el_reenvio(tmp_path):
     raiz = tmp_path / "datos"
     raiz.mkdir()
+    _alistar(raiz)
     cv = tmp_path / "cv.pdf"
     cv.write_bytes(b"pdf")
     creada = _cli(raiz, "postulacion", "crear", entrada=json.dumps({"empresa": "Acme", "cargo": "Jefe", "url": URL}))
@@ -318,7 +343,7 @@ def test_cli_recorre_el_flujo_y_rechaza_el_reenvio(tmp_path):
         "postulacion",
         "intentar",
         id_,
-        entrada=json.dumps({"autonomia": 0, "aprobacion": "usuario", "cv": str(cv)}),
+        entrada=_solicitud(cv),
     )
     confirmacion = _cli(
         raiz,
@@ -333,7 +358,7 @@ def test_cli_recorre_el_flujo_y_rechaza_el_reenvio(tmp_path):
         "postulacion",
         "intentar",
         id_,
-        entrada=json.dumps({"autonomia": 0, "aprobacion": "usuario", "cv": str(cv)}),
+        entrada=_solicitud(cv),
     )
 
     assert intento.returncode == 0, intento.stderr
@@ -346,7 +371,7 @@ def test_cli_recorre_el_flujo_y_rechaza_el_reenvio(tmp_path):
 def test_cli_premia_una_vez_con_el_valor_de_la_configuracion(tmp_path):
     raiz = tmp_path / "datos"
     raiz.mkdir()
-    assert _cli(raiz, "init").returncode == 0
+    _alistar(raiz)
     configuracion = raiz / "configuracion" / "configuracion.json"
     datos_config = json.loads(configuracion.read_text(encoding="utf-8"))
     configuracion.write_text(json.dumps(datos_config | {"recompensa_primer_contacto": 2.5}), encoding="utf-8")
@@ -355,13 +380,8 @@ def test_cli_premia_una_vez_con_el_valor_de_la_configuracion(tmp_path):
     id_ = json.loads(
         _cli(raiz, "postulacion", "crear", entrada=json.dumps({"empresa": "Acme", "cargo": "Jefe", "url": URL})).stdout
     )["id"]
-    envio = {
-        "autonomia": 0,
-        "aprobacion": "usuario",
-        "cv": str(cv),
-        "respuestas": [{"pregunta": "Renta", "texto": "x", "respuesta_id": "H3", "version": "v001"}],
-    }
-    _cli(raiz, "postulacion", "intentar", id_, entrada=json.dumps(envio))
+    respuestas = [{"pregunta": "Renta", "texto": "x", "respuesta_id": "H3", "version": "v001"}]
+    _cli(raiz, "postulacion", "intentar", id_, entrada=_solicitud(cv, respuestas=respuestas))
     _cli(raiz, "postulacion", "confirmar", id_, entrada=json.dumps({"tipo": "correo", "detalle": "folio 1"}))
 
     primero = _cli(raiz, "postulacion", "evento", id_, entrada='{"tipo": "PRIMER_CONTACTO_ENTREVISTA"}')

@@ -2,7 +2,7 @@ import json
 import sys
 from pathlib import Path
 
-from agente0 import fuentes, oportunidades, postulaciones, ranking, recordatorios, respuestas
+from agente0 import autonomia, configuracion, fuentes, oportunidades, postulaciones, ranking, recordatorios, respuestas
 from agente0.cv_limites import calibrar, cargar_limites, verificar
 from agente0.datos import DatosError, cargar_configuracion, crear_estructura, datos_dir
 from agente0.revisiones import Revision, fecha_ultima_revision, registrar_revision
@@ -17,6 +17,8 @@ USO = (
     " | oportunidad registrar (JSON por stdin) | oportunidad listar [ESTADO] | oportunidad ver <id>"
     " | oportunidad evaluar|estado <id> (JSON por stdin)"
     " | ranking generar|ultimo | fuentes listar | fuentes guardar|agregar (JSON por stdin)"
+    " | autonomia evaluar <id> (JSON por stdin: portal, juicios) | autonomia matriz [nivel] | autonomia aviso <nivel>"
+    " | configuracion editar (JSON por stdin: cambios, confirmacion)"
 )
 ACCIONES_POSTULACION = ("crear", "ver", "intentar", "confirmar", "fallido", "evento", "recompensar", "finalizar")
 
@@ -32,6 +34,12 @@ def main(argv: list[str]) -> int:
         return _respuestas(argv[1], argv[2:])
     if argv[:1] == ["oportunidad"] and len(argv) >= 2:
         return _oportunidad(argv[1], argv[2:])
+    if argv[:2] == ["autonomia", "evaluar"] and len(argv) == 3:
+        return _autonomia_evaluar(argv[2])
+    if argv[:2] in (["autonomia", "matriz"], ["autonomia", "aviso"]) and len(argv) <= 3:
+        return _autonomia_texto(argv[1], argv[2:])
+    if argv == ["configuracion", "editar"]:
+        return _configuracion_editar()
     if argv[:1] in (["ranking"], ["fuentes"]) and len(argv) == 2:
         return _ranking_o_fuentes(argv[0], argv[1])
     if len(argv) == 4 and argv[:2] == ["cv", "calibrar"] and argv[3].isdigit():
@@ -98,7 +106,10 @@ def _postulacion(accion: str, resto: list[str]) -> int:
             if accion == "crear":
                 resultado = postulaciones.crear(raiz, **datos)
             elif accion == "intentar":
-                resultado = postulaciones.intentar_envio(raiz, resto[0], postulaciones.Envio.model_validate(datos))
+                solicitud = autonomia.SolicitudEnvio.model_validate(datos)
+                resultado = postulaciones.intentar_envio(
+                    raiz, resto[0], autonomia.preparar_envio(raiz, resto[0], solicitud)
+                )
             elif accion == "confirmar":
                 resultado = postulaciones.confirmar_envio(raiz, resto[0], postulaciones.Evidencia.model_validate(datos))
             elif accion == "fallido":
@@ -171,6 +182,52 @@ def _oportunidad(accion: str, resto: list[str]) -> int:
             return 2
         _imprimir(resultado)
     except (DatosError, ValueError, TypeError, OSError) as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 1
+    return 0
+
+
+def _autonomia_evaluar(id_: str) -> int:
+    try:
+        datos = json.loads(sys.stdin.read())
+        juicios = autonomia.Juicios.model_validate(datos.get("juicios") or {})
+        _imprimir(autonomia.evaluar(datos_dir(), id_, datos["portal"], juicios))
+    except (DatosError, ValueError, TypeError, KeyError, OSError) as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 1
+    return 0
+
+
+def _autonomia_texto(accion: str, resto: list[str]) -> int:
+    try:
+        if resto and not resto[0].isdigit():
+            raise ValueError(f"el nivel debe ser un número, no {resto[0]!r}.")
+        nivel = int(resto[0]) if resto else None
+        if accion == "aviso":
+            if nivel is None:
+                raise ValueError("`aviso` exige el nivel.")
+            lineas = autonomia.aviso(datos_dir(), nivel)
+        else:
+            lineas = autonomia.vista_previa(nivel)
+        print("\n".join(lineas))
+    except (DatosError, ValueError, OSError) as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 1
+    return 0
+
+
+def _configuracion_editar() -> int:
+    try:
+        datos = json.loads(sys.stdin.read())
+        nueva, advertencias = configuracion.editar(datos_dir(), datos["cambios"], datos.get("confirmacion"))
+        print(
+            json.dumps(
+                {"configuracion": nueva.model_dump(mode="json"), "advertencias": advertencias},
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
+    except (DatosError, ValueError, TypeError, KeyError, OSError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 1
     return 0

@@ -83,9 +83,14 @@ En `resumen.md`:
 
 ## 7. Presentar y cerrar
 
-Mostrar al usuario el resumen y el render de la primera página (la leída primero) y esperar su aprobación; la compuerta de autonomía de §5.2 del diseño decide si se puede continuar sin ella. Con la aprobación, anotar al final de `resumen.md` la fecha, el nivel de autonomía vigente y quién aprobó (regla 5). Un cambio pedido por el usuario crea otra carpeta con fecha, no edita la aprobada.
+Ver qué pide la compuerta para el CV con `python -m agente0 autonomia matriz <autonomia de configuracion.json>` (D12):
 
-No avanzar a la postulación: el subflujo continúa con B8.
+- **CV: tú apruebas** (0 y 25 %): mostrar el resumen y el render de la primera página (la leída primero) y esperar la aprobación. Con ella, anotar al final de `resumen.md` la fecha, el nivel vigente y quién aprobó (regla 5).
+- **CV: automático** (50 % o más): dejar el resumen igual y seguir sin esperar. Anotar al final de `resumen.md` la fecha, el nivel y «automático: auditoría de veracidad aprobada». Si la auditoría no quedó aprobada, no hay continuación automática: pedir la decisión al usuario. El usuario ve este CV en la vista previa antes del envío (`postular`).
+
+Un cambio pedido por el usuario crea otra carpeta con fecha, no edita la aprobada.
+
+No avanzar a la postulación: el subflujo continúa en la skill `postular`, que calcula la compuerta de cada postulación con el tope del portal.
 
 ## Formato de las preguntas
 

@@ -60,3 +60,49 @@ def test_priorizacion_editada_a_mano_sobrevive_al_ciclo_json():
 def test_priorizacion_invalida_se_rechaza(cambio):
     with pytest.raises(ValidationError):
         Configuracion.model_validate({"priorizacion": cambio})
+
+
+def test_compuerta_parte_con_los_valores_de_d12_y_el_tope_acordado_en_b11():
+    c = Configuracion().compuerta
+    assert c.limites_diarios.model_dump() == {"alto": 3, "medio": 5, "bajo": 8}
+    assert c.pausa_minutos == 2
+    assert c.tope_por_riesgo == {"alto": 50}
+    assert (c.topes_por_portal, c.siempre_aprobar_portales, c.siempre_aprobar_empresas) == ({}, [], [])
+    assert set(c.condiciones_preferencia) == {
+        "seniority",
+        "ubicacion",
+        "umbral_match",
+        "sin_proceso_activo",
+        "renta_minima",
+    }
+    assert (c.seniority_permitido, c.ubicaciones_permitidas) == ([], [])
+
+
+def test_configuracion_sin_bloque_de_compuerta_carga_con_los_valores_iniciales():
+    assert Configuracion.model_validate_json('{"autonomia": 75}').compuerta == Configuracion().compuerta
+
+
+def test_topes_se_redondean_hacia_abajo_al_nivel_fijo():
+    c = Configuracion.model_validate(
+        {"compuerta": {"tope_por_riesgo": {"alto": 60, "medio": 100}, "topes_por_portal": {"LinkedIn Jobs": 30}}}
+    ).compuerta
+    assert c.tope_por_riesgo == {"alto": 50, "medio": 100}
+    assert c.topes_por_portal == {"LinkedIn Jobs": 25}
+
+
+@pytest.mark.parametrize(
+    "cambio",
+    [
+        {"tope_por_riesgo": {"extremo": 50}},
+        {"tope_por_riesgo": {"alto": 101}},
+        {"tope_por_riesgo": {"alto": -1}},
+        {"limites_diarios": {"alto": -1}},
+        {"limites_diarios": {"critico": 1}},
+        {"condiciones_preferencia": ["inventada"]},
+        {"pausa_minutos": -1},
+        {"pausa": 2},
+    ],
+)
+def test_compuerta_invalida_se_rechaza(cambio):
+    with pytest.raises(ValidationError):
+        Configuracion.model_validate({"compuerta": cambio})

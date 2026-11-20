@@ -9,6 +9,9 @@ FiltroExcluyente = Literal[
     "renta", "modalidad_ubicacion", "seniority", "empresa_excluida", "requisitos_obligatorios", "cargo_mal_fit"
 ]
 FILTROS_EXCLUYENTES = get_args(FiltroExcluyente)
+Riesgo = Literal["alto", "medio", "bajo"]
+CondicionPreferencia = Literal["seniority", "ubicacion", "umbral_match", "sin_proceso_activo", "renta_minima"]
+CONDICIONES_PREFERENCIA = get_args(CondicionPreferencia)
 
 
 class RecordatoriosDias(BaseModel):
@@ -64,6 +67,45 @@ class Priorizacion(BaseModel):
         return self
 
 
+def _nivel_hacia_abajo(valor: int) -> int:
+    return max(n for n in NIVELES_AUTONOMIA if n <= valor)
+
+
+class LimitesDiarios(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    alto: int = Field(default=3, ge=0)
+    medio: int = Field(default=5, ge=0)
+    bajo: int = Field(default=8, ge=0)
+
+
+class Compuerta(BaseModel):
+    """Parámetros de la compuerta de autonomía (D12 y U4). Los valores iniciales son los de D12."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    limites_diarios: LimitesDiarios = Field(default_factory=LimitesDiarios)
+    pausa_minutos: int = Field(default=2, ge=0)
+    # Nivel máximo según el riesgo del portal (U5) y por nombre de portal; este último manda sobre el primero.
+    tope_por_riesgo: dict[Riesgo, int] = Field(default_factory=lambda: {"alto": 50})
+    topes_por_portal: dict[str, int] = Field(default_factory=dict)
+    # Aprobar el envío a mano aunque el nivel sea más alto.
+    siempre_aprobar_portales: list[str] = Field(default_factory=list)
+    siempre_aprobar_empresas: list[str] = Field(default_factory=list)
+    # Quitar una condición de la lista la desactiva; las reglas siempre vigentes de D12 no son configurables.
+    condiciones_preferencia: list[CondicionPreferencia] = Field(default_factory=lambda: list(CONDICIONES_PREFERENCIA))
+    # Una condición activa con lista vacía no se cumple nunca: sin configurar, nada se envía solo.
+    seniority_permitido: list[str] = Field(default_factory=list)
+    ubicaciones_permitidas: list[str] = Field(default_factory=list)
+
+    @field_validator("tope_por_riesgo", "topes_por_portal")
+    @classmethod
+    def _topes_a_nivel_fijo(cls, topes: dict) -> dict:
+        if any(not 0 <= valor <= 100 for valor in topes.values()):
+            raise ValueError("un tope de nivel va de 0 a 100.")
+        return {clave: _nivel_hacia_abajo(valor) for clave, valor in topes.items()}
+
+
 class Configuracion(BaseModel):
     # extra="forbid": el archivo se edita a mano y un nombre mal escrito no debe ignorarse en silencio.
     model_config = ConfigDict(extra="forbid")
@@ -73,8 +115,9 @@ class Configuracion(BaseModel):
     repetir_recordatorio_horas: int = Field(default=24, gt=0)
     recompensa_primer_contacto: float = Field(default=1.0, gt=0)
     priorizacion: Priorizacion = Field(default_factory=Priorizacion)
+    compuerta: Compuerta = Field(default_factory=Compuerta)
 
     @field_validator("autonomia")
     @classmethod
     def _redondear_hacia_abajo(cls, valor: int) -> int:
-        return max(n for n in NIVELES_AUTONOMIA if n <= valor)
+        return _nivel_hacia_abajo(valor)

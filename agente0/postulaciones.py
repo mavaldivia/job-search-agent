@@ -14,6 +14,9 @@ Estado = Literal["PREPARADA", "ENVIO_INTENTADO", "POSTULADO", "EN_PROCESO", "FIN
 Resultado = Literal[
     "oferta_aceptada", "oferta_rechazada_por_usuario", "rechazada_por_empresa", "retirada", "sin_respuesta"
 ]
+# D12: pasos del subflujo que la autonomía puede automatizar y cómo se resuelve cada uno.
+Accion = Literal["cv", "respuestas", "formulario", "envio"]
+Modo = Literal["aprobar", "aprobar_nuevas", "automatico"]
 TipoEvento = Literal[
     "CAMBIO_ESTADO",
     "PRIMER_CONTACTO_ENTREVISTA",
@@ -61,6 +64,17 @@ class RespuestaEnviada(BaseModel):
     version: str | None = None
 
 
+class Condicion(BaseModel):
+    """Una condición de la compuerta (D12) con su resultado, tal como queda en la instantánea."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    nombre: str = Field(min_length=1)
+    tipo: Literal["vigente", "preferencia"]
+    resultado: Literal["cumple", "no_cumple", "no_evaluada", "no_aplica"]
+    detalle: str = ""
+
+
 class Envio(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -68,6 +82,11 @@ class Envio(BaseModel):
     aprobacion: str = Field(min_length=1)
     cv: Path
     respuestas: list[RespuestaEnviada] = Field(default_factory=list)
+    # Registro de la compuerta (B11). Opcionales: las instantáneas anteriores a B11 no los traen.
+    portal: str | None = None
+    nivel_efectivo: int | None = None
+    acciones: dict[Accion, Modo] = Field(default_factory=dict)
+    condiciones: list[Condicion] = Field(default_factory=list)
 
     @field_validator("autonomia")
     @classmethod
@@ -145,6 +164,36 @@ def cargar(raiz: Path, id_: str) -> Postulacion:
     if not archivo.exists():
         raise PostulacionError(f"no existe la postulación {id_}.")
     return Postulacion.model_validate_json(archivo.read_text(encoding="utf-8"))
+
+
+def listar(raiz: Path) -> list[Postulacion]:
+    carpeta = raiz / "postulaciones"
+    if not carpeta.is_dir():
+        return []
+    return [cargar(raiz, d.name) for d in sorted(carpeta.iterdir()) if d.is_dir()]
+
+
+class IntentoDeEnvio(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id: str
+    intento: int
+    momento: datetime
+    portal: str | None
+
+
+def intentos_de_envio(raiz: Path) -> list[IntentoDeEnvio]:
+    """Cada paso a ENVIO_INTENTADO de todas las postulaciones, con el portal de su instantánea (D12: límites y pausa)."""
+    intentos = []
+    for postulacion in listar(raiz):
+        pasos = [
+            e for e in _eventos(raiz, postulacion.id) if e.tipo == "CAMBIO_ESTADO" and e.estado == "ENVIO_INTENTADO"
+        ]
+        for numero, evento in enumerate(pasos, start=1):
+            archivo = _carpeta(raiz, postulacion.id) / "instantanea" / f"{numero:03d}" / "envio.json"
+            portal = Envio.model_validate_json(archivo.read_text(encoding="utf-8")).portal
+            intentos.append(IntentoDeEnvio(id=postulacion.id, intento=numero, momento=evento.fecha, portal=portal))
+    return intentos
 
 
 def _guardar(carpeta: Path, postulacion: Postulacion, evento: Evento) -> None:

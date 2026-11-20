@@ -305,7 +305,8 @@ $AGENTE0_DATOS/
     diario.md                      (B15: diario de vida laboral; contexto fechado que no entra al CV ni a formularios salvo que el usuario lo promueva a perfil.md)
     revisiones_perfil.jsonl        (B15: append-only, una línea por revisión de "Actualizar perfil"; su última fecha es el reloj del recordatorio de experiencia)
   configuracion/
-    configuracion.json             (autonomía, X de recordatorios, repetición de recordatorios en horas y el bloque `priorizacion` de B6: pesos, umbrales, Top, ventana, filtros; después límites por portal)
+    configuracion.json             (autonomía, X de recordatorios, repetición de recordatorios en horas, el bloque `priorizacion` de B6: pesos, umbrales, Top, ventana, filtros, y el bloque `compuerta` de B11: límites diarios, pausa, topes, excepciones y condiciones de auto-envío)
+    autonomia.jsonl                (B11: append-only, un registro por cambio de nivel con fecha y, al activar 100 %, la confirmación del usuario)
     recordatorios.json             (B10: fecha de la última operación de CV base y de configuración, y última pregunta por caso; el reloj de experiencia está en revisiones_perfil.jsonl)
   perfil/fuentes.json              (B6: fuentes de búsqueda del usuario con método, riesgo y si está activa)
   oportunidades/<id>/              (B6: oportunidad.json con estado, vigencia y evaluación; eventos.jsonl; publicacion.txt con el texto literal puntuado; mismo ID que la postulación)
@@ -317,7 +318,7 @@ $AGENTE0_DATOS/
     postulacion.json               (estado actual)
     eventos.jsonl                  (append-only; B9: incluye el evento RECOMPENSA del primer contacto)
     cv/                            (CV adaptado)
-    instantanea/<nnn>/             (B4, inmutable, una por intento de envío: cv.<ext>, envio.json con preguntas, respuestas literales, autonomía y aprobación; evidencia.json y captura al confirmar)
+    instantanea/<nnn>/             (B4, inmutable, una por intento de envío: cv.<ext>, envio.json con preguntas, respuestas literales, autonomía, aprobación y, desde B11, portal, nivel efectivo, acciones y cada condición con su resultado; evidencia.json y captura al confirmar)
     estadisticas.json              (derivable, recalculable)
   origen/                          (material de partida del onboarding, no confirmado)
   respaldos/                       (copias de seguridad que el usuario quiera guardar)
@@ -350,7 +351,7 @@ Las 18 decisiones de la Fase 1 están cerradas (2026-11-15). Cada una se present
 - Recordatorios (D15, 2026-11-15): un `X` por caso medido desde la última vez que se hizo la operación (experiencia 15, CV base 30, configuración 60 días); "ahora no" no reinicia el reloj y el caso vuelve en la próxima revisión, como máximo cada 24 h por caso (revisión 2026-11-19); nunca bloquea ni modifica solo.
 - Errores y reintentos (D14, 2026-11-15): la confirmación visible del sitio basta para `POSTULADO`; sin ella, `ENVIO_INTENTADO` y verificación en el portal o el correo antes de reintentar; mismo ID por reintento y nunca reenviar sin verificar.
 - Inicio de postulaciones (D13, 2026-11-15): el subflujo parte solo tras el ranking según el nivel de autonomía, con el Top 10 en orden de puntaje y hasta el límite diario; el usuario puede saltar o descartar vacantes. Sin selección previa obligatoria.
-- Autonomía (D12, 2026-11-15): niveles fijos 0, 25, 50, 75 y 100 %, con condiciones de auto-envío al 75 %, reglas siempre vigentes, excepciones y tope de nivel por portal, límites diarios por riesgo, vista previa y aviso antes de activar 100 %.
+- Autonomía (D12, 2026-11-15): niveles fijos 0, 25, 50, 75 y 100 %, con condiciones de auto-envío al 75 %, reglas siempre vigentes, excepciones y tope de nivel por portal, límites diarios por riesgo, vista previa y aviso antes de activar 100 %. Implementada en B11 (2026-11-19): compuerta calculada por código, tope de 50 % en riesgo alto por defecto y edición desde la operación 5; pruebas reales al 25 y al 75 % hechas el 2026-11-19; falta que el usuario dé por validado el 75 %.
 - Priorización (D11, 2026-11-15): puntaje ponderado con los ejes "quiero" y "tengo" siempre visibles por separado, filtros excluyentes antes de puntuar y estabilidad por evidencia; el umbral de match de autonomía se define por eje. Implementada en B6: el puntaje se conserva mientras no cambie el texto de la publicación y un empate lo gana quien ya estaba en el Top.
 - Fuentes de empleos y periodicidad (D10, 2026-11-15): búsqueda web primero y navegador solo para portales que lo exigen y para verificar vigencia; lista por usuario y país; a demanda; vigencia en la fuente oficial.
 - Respuestas tipo (D9, 2026-11-15): una respuesta vigente por categoría con versiones sucesivas; categorías de hechos y narrativas; preguntas que exigen respuesta nueva; sin respuesta confirmada, cola de aprobación incluso al 100 %. Enmendada en B5: variantes por familia de cargo y guardado por el agente cuando el perfil respalda la respuesta.
