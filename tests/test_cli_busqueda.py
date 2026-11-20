@@ -105,3 +105,70 @@ def test_los_errores_salen_con_codigo_1_y_mensaje(raiz, args, entrada):
 
     assert resultado.returncode == 1
     assert resultado.stderr.startswith("error:")
+
+
+def test_busqueda_por_cli_registra_consulta_calcula_pendiente_cupo_y_reconoce_vistas(raiz):
+    fuente = {"nombre": "LinkedIn Jobs", "tipo": "generalista", "pais": "Chile", "metodo": "navegador", "riesgo": "alto"}
+    assert _cli(raiz, "fuentes", "guardar", entrada=json.dumps([fuente])).returncode == 0
+
+    consulta = _cli(
+        raiz,
+        "busqueda",
+        "consulta",
+        entrada=json.dumps(
+            {
+                "fuente": "LinkedIn Jobs",
+                "consulta": "Data Science Lead",
+                "paginas": 3,
+                "lecturas": 9,
+                "vistas": 60,
+                "nuevas": 5,
+                "cubre_desde": "2026-10-21",
+            }
+        ),
+    )
+    assert consulta.returncode == 0, consulta.stderr
+
+    pendiente = _cli(
+        raiz, "busqueda", "pendiente", entrada=json.dumps({"fuente": "LinkedIn Jobs", "consulta": "data science lead"})
+    )
+    assert pendiente.returncode == 0, pendiente.stderr
+    assert json.loads(pendiente.stdout)[-1]["hasta"] == json.loads(consulta.stdout)["fecha"][:10]
+
+    cupo = json.loads(_cli(raiz, "busqueda", "cupo", entrada=json.dumps({"fuente": "LinkedIn Jobs"})).stdout)
+    assert (cupo["primera_pasada"], cupo["paginas_usadas_hoy"], cupo["paginas_restantes"]) == (True, 3, None)
+
+    vista = _cli(
+        raiz,
+        "busqueda",
+        "vista",
+        entrada=json.dumps(
+            {
+                "fuente": "LinkedIn Jobs",
+                "empresa": "Beta",
+                "cargo": "Gerente de Ventas",
+                "url": "https://www.linkedin.com/jobs/view/1",
+                "motivo": "mal fit declarado",
+            }
+        ),
+    )
+    assert vista.returncode == 0, vista.stderr
+    conocida = _cli(raiz, "busqueda", "conocida", entrada=json.dumps({"url": "https://www.linkedin.com/jobs/view/1/"}))
+    assert json.loads(conocida.stdout)["origen"] == "VISTA"
+    desconocida = _cli(raiz, "busqueda", "conocida", entrada=json.dumps({"url": "https://www.linkedin.com/jobs/view/2"}))
+    assert desconocida.stdout.strip() == "no_conocida"
+    assert [r["ultima_busqueda"] is not None for r in json.loads(_cli(raiz, "busqueda", "resumen").stdout)] == [True]
+
+
+def test_busqueda_por_cli_rechaza_una_fuente_desconocida(raiz):
+    resultado = _cli(
+        raiz,
+        "busqueda",
+        "consulta",
+        entrada=json.dumps(
+            {"fuente": "Nada", "consulta": "x", "paginas": 1, "lecturas": 1, "vistas": 1, "nuevas": 0, "cubre_desde": "2026-11-01"}
+        ),
+    )
+
+    assert resultado.returncode == 1
+    assert "no está en fuentes.json" in resultado.stderr

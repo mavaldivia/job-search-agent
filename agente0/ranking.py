@@ -3,7 +3,7 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from agente0 import oportunidades, postulaciones
 from agente0.datos import cargar_configuracion
@@ -35,6 +35,22 @@ class Entrada(BaseModel):
     cambio: Cambio
 
 
+class FueraDelTop(BaseModel):
+    """Evaluada, vigente y sin entrar al Top: queda a la vista para cuando suba el Top o bajen los umbrales."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: str
+    empresa: str
+    cargo: str
+    url: str
+    quiero: float
+    tengo: float
+    total: float
+    cumple_umbrales: bool
+    brecha_principal: str
+
+
 class Salida(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -60,6 +76,8 @@ class Ranking(BaseModel):
     generado: datetime
     anterior: str | None
     top: list[Entrada]
+    # Los rankings guardados antes de B18 no traen este campo.
+    fuera_del_top: list[FueraDelTop] = Field(default_factory=list)
     salidas: list[Salida]
     # Descartadas por filtro en esta corrida y que no venían del Top anterior (esas figuran en `salidas`).
     descartadas: list[Descartada]
@@ -177,12 +195,28 @@ def generar(raiz: Path, ahora: datetime | None = None) -> Ranking:
             )
         )
 
+    fuera_del_top = [
+        FueraDelTop(
+            id=i,
+            empresa=o.empresa,
+            cargo=o.cargo,
+            url=o.url,
+            quiero=quiero,
+            tengo=tengo,
+            total=total,
+            cumple_umbrales=tengo >= config.umbrales.tengo and quiero >= config.umbrales.quiero,
+            brecha_principal=o.evaluacion.brecha_principal,
+        )
+        for i, (o, quiero, tengo, total, _) in sorted(puntuadas.items(), key=lambda p: (-p[1][3], p[0]))
+        if i not in orden
+    ]
     salidas = [_salida(raiz, id_, puntuadas) for id_ in ids_previos if id_ not in orden]
     ids_en_salidas = {s.id for s in salidas}
     ranking = Ranking(
         generado=ahora,
         anterior=_nombre(previo.generado) if previo else None,
         top=top,
+        fuera_del_top=fuera_del_top,
         salidas=salidas,
         descartadas=[d for d in descartadas if d.id not in ids_en_salidas],
         pendientes=pendientes,

@@ -4,6 +4,7 @@ from pathlib import Path
 
 from agente0 import (
     autonomia,
+    busquedas,
     configuracion,
     fuentes,
     oportunidades,
@@ -28,6 +29,7 @@ USO = (
     " | oportunidad registrar (JSON por stdin) | oportunidad listar [ESTADO] | oportunidad ver <id>"
     " | oportunidad evaluar|estado <id> (JSON por stdin)"
     " | ranking generar|ultimo | fuentes listar | fuentes guardar|agregar (JSON por stdin)"
+    " | busqueda resumen | busqueda vistas | busqueda consulta|vista|pendiente|cupo|conocida (JSON por stdin)"
     " | autonomia evaluar <id> (JSON por stdin: portal, juicios) | autonomia matriz [nivel] | autonomia aviso <nivel>"
     " | configuracion editar (JSON por stdin: cambios, confirmacion)"
     " | simulacion (JSON por stdin: cambios; no modifica la configuración)"
@@ -50,6 +52,8 @@ def main(argv: list[str]) -> int:
         return _oportunidad(argv[1], argv[2:])
     if argv[:2] == ["autonomia", "evaluar"] and len(argv) == 3:
         return _autonomia_evaluar(argv[2])
+    if argv[:1] == ["busqueda"] and len(argv) == 2:
+        return _busqueda(argv[1])
     if argv[:2] in (["autonomia", "matriz"], ["autonomia", "aviso"]) and len(argv) <= 3:
         return _autonomia_texto(argv[1], argv[2:])
     if argv == ["configuracion", "editar"]:
@@ -195,6 +199,36 @@ def _oportunidad(accion: str, resto: list[str]) -> int:
             resultado = oportunidades.evaluar(raiz, resto[0], **json.loads(sys.stdin.read()))
         elif accion == "estado" and len(resto) == 1:
             resultado = oportunidades.cambiar_estado(raiz, resto[0], **json.loads(sys.stdin.read()))
+        else:
+            print(USO, file=sys.stderr)
+            return 2
+        _imprimir(resultado)
+    except (DatosError, ValueError, TypeError, OSError) as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 1
+    return 0
+
+
+def _busqueda(accion: str) -> int:
+    try:
+        raiz = datos_dir()
+        if accion == "resumen":
+            resultado = busquedas.resumen(raiz)
+        elif accion == "vistas":
+            resultado = busquedas.vistas(raiz)
+        elif accion in ("consulta", "vista", "pendiente", "cupo", "conocida"):
+            entrada = json.loads(sys.stdin.read())
+            funcion = {
+                "consulta": busquedas.registrar_consulta,
+                "vista": busquedas.registrar_vista,
+                "pendiente": busquedas.pendiente,
+                "cupo": busquedas.cupo,
+                "conocida": busquedas.conocida,
+            }[accion]
+            resultado = funcion(raiz, **entrada)
+            if resultado is None:
+                print("no_conocida")
+                return 0
         else:
             print(USO, file=sys.stderr)
             return 2

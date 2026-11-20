@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 
 import pytest
@@ -274,3 +275,29 @@ def test_el_ranking_queda_guardado_y_ultimo_devuelve_el_mas_reciente(raiz, ranki
 
     assert ultimo(raiz) == segunda
     assert len(list((raiz / "ranking").glob("*.json"))) == 2
+
+
+def test_las_evaluadas_que_no_entran_al_top_quedan_a_la_vista_con_su_puntaje(raiz, ranking):
+    configurar(raiz, top=1)
+    alta = vacante(raiz, 1, tengo=90, quiero=80)
+    media = vacante(raiz, 2, tengo=75, quiero=65)
+    baja = vacante(raiz, 3, tengo=40, quiero=30)
+
+    r = ranking()
+
+    assert ids(r) == [alta]
+    assert [(f.id, f.cumple_umbrales, f.brecha_principal) for f in r.fuera_del_top] == [
+        (media, True, "Brecha de la vacante 2"),
+        (baja, False, "Brecha de la vacante 3"),
+    ]
+    assert cargar(raiz, baja).estado == "POTENCIAL"
+
+
+def test_un_ranking_guardado_antes_de_b18_se_sigue_leyendo(raiz, ranking):
+    vacante(raiz, 1, tengo=90, quiero=80)
+    r = ranking()
+    archivo = next((raiz / "ranking").glob("*.json"))
+    antiguo = {k: v for k, v in r.model_dump(mode="json").items() if k != "fuera_del_top"}
+    archivo.write_text(json.dumps(antiguo), encoding="utf-8")
+
+    assert ultimo(raiz).fuera_del_top == []

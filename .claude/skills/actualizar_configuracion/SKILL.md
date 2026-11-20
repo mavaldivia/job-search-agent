@@ -21,6 +21,7 @@ Resumir en pocas líneas, agrupado, sin volcar el JSON:
 - **Autonomía**: el nivel y qué se hace solo y qué se aprueba en él.
 - **Compuerta** (`compuerta`): condiciones de preferencia activas, `seniority_permitido` y `ubicaciones_permitidas`, límites diarios por riesgo, pausa entre envíos, topes de nivel por riesgo y por portal, excepciones «siempre aprobar» por portal y empresa.
 - **Priorización** (`priorizacion`): umbrales de match por eje, renta mínima, empresas excluidas, pesos de los criterios, tamaño del Top y ventana de vigencia.
+- **Búsqueda** (`busqueda`): topes por corrida y por fuente según el riesgo (`topes_por_riesgo`: páginas de resultados y publicaciones leídas); un riesgo que no figura no tiene tope, y el primer día de búsqueda en una fuente tampoco.
 - **Recordatorios**: los tres `X` de días y la repetición en horas.
 
 Si una condición activa tiene la lista vacía (`seniority_permitido`, `ubicaciones_permitidas`), decirlo: al 75 % nada se envía solo hasta definirla.

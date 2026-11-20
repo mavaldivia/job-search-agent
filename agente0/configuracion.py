@@ -9,7 +9,7 @@ from agente0.esquemas import Configuracion
 
 ARCHIVO_AUTONOMIA = "configuracion/autonomia.jsonl"
 # Mapas con claves libres: un cambio los reemplaza completos; el resto de los bloques se fusiona clave a clave.
-MAPAS = {"criterios", "tope_por_riesgo", "topes_por_portal"}
+MAPAS = {"criterios", "tope_por_riesgo", "topes_por_portal", "topes_por_riesgo"}
 
 
 class ConfiguracionError(ValueError):

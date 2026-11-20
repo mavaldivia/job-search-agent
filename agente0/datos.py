@@ -10,6 +10,7 @@ DIRECTORIOS = (
     "cv/base",
     "respuestas",
     "oportunidades",
+    "busquedas",
     "ranking",
     "postulaciones",
     "origen",

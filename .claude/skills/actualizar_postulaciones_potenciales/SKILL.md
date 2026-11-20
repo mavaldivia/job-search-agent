@@ -28,24 +28,38 @@ python -m agente0 oportunidad estado <id> <<'EOF'
 {"nuevo": "DESCARTADO", "motivo": "decisión del usuario"}
 EOF
 python -m agente0 ranking generar | ranking ultimo
+python -m agente0 busqueda resumen | busqueda vistas                                   # última búsqueda por fuente; vistas descartadas
+python -m agente0 busqueda cupo | pendiente | conocida | consulta | vista              # JSON por stdin, ver §1
 ```
 
 - `registrar` es idempotente: repetirlo actualiza la vigencia y suma fuentes, y no resucita una vacante cerrada o descartada. La `url` oficial fija el ID, el mismo que usará la postulación: registrar solo cuando ya se conoce el enlace oficial.
 - `evaluar` exige todos los criterios de `priorizacion.criterios` y los filtros activos que califica el agente (`modalidad_ubicacion`, `seniority`, `requisitos_obligatorios`, `cargo_mal_fit`). `renta` y `empresa_excluida` los decide el código. Si el texto de la publicación no cambió, el CLI conserva el puntaje guardado (estabilidad de D11); `"forzar": true` solo cuando cambió el perfil y el usuario acepta repuntuar.
+- `busquedas/registro.jsonl` (solo se agrega) guarda cada consulta hecha en cada fuente y cada vacante descartada a simple vista. De ahí salen la fecha de la última búsqueda por fuente, los tramos de fechas aún por revisar y el tope por corrida (`busqueda` en la configuración).
 - `ranking generar` descarta con motivo las que incumplen un filtro, pasa a `EN_POSTULACION` las que ya tienen postulación, y deja en `pendientes` las que aún no tienen evaluación vigente.
 
 ## 0. Preparación
 
 1. Comprobar que `AGENTE0_DATOS` existe. Correr `configuracion ver` (parámetros vigentes: criterios, pesos, umbrales, Top, `ventana_dias`, filtros, renta mínima, empresas excluidas) y `ranking ultimo`.
 2. Leer `perfil/perfil.md` e `intereses.md` (cargos, seniority, geografía, mal fit, familias de CV) y, si existe, el material de `origen/`.
-3. `fuentes listar`. Si está vacía: proponer una lista inicial según el país del usuario (tipo, método `web` o `navegador`, riesgo) y guardarla con `fuentes guardar` solo tras su aprobación. El repo no trae catálogo por país.
+3. `fuentes listar` y `busqueda resumen` (qué fuentes nunca se han buscado y cuándo fue la última búsqueda de cada una). Si la lista está vacía: proponer una lista inicial según el país del usuario (tipo, método `web` o `navegador`, riesgo) y guardarla con `fuentes guardar` solo tras su aprobación. El repo no trae catálogo por país.
 4. Antes de la primera acción externa en un portal, pedir consentimiento (D3). Los portales por navegador usan la sesión abierta del usuario: si piden login, 2FA o CAPTCHA, pausar esa fuente y avisar; no pedir ni escribir credenciales.
 
 ## 1. Descubrir
 
-- Por cada fuente activa: método `web` con búsqueda y lectura de páginas; método `navegador` con la extensión de Chrome, solo donde hace falta (D10). Ventana: vacantes publicadas en los últimos `ventana_dias`.
-- Buscar con los cargos y la geografía del perfil, y descartar a simple vista el mal fit declarado en `intereses.md` antes de gastar lecturas. Sin ráfagas: lectura espaciada, solo las candidatas, nunca recorrer listados completos en un portal de riesgo alto.
-- Una misma vacante en varias fuentes es un solo empleo: antes de registrar, correr `oportunidad listar` y comparar empresa y cargo. Las demás fuentes van en `fuentes` de la misma vacante.
+Se recorren **todas** las fuentes activas, también las de riesgo medio y alto, con el consentimiento por portal de D3 y los límites de D4. Para cada fuente activa y cada variante de consulta:
+
+1. **Variantes**: salen de `intereses.md` (cargos de prioridad alta y secundarios) con sinónimos y traducciones (Lead, Manager, Jefe, Head; español e inglés). Cada variante es una consulta distinta y se guarda con su texto exacto.
+2. **Cupo**: `busqueda cupo` con `{"fuente": "..."}`. Si `primera_pasada` es `true` (primer día de búsqueda en esa fuente), se recorre completa, sin tope, con lectura espaciada y pausa ante login, CAPTCHA o aviso de bloqueo. Si no, se respetan `paginas_restantes` y `lecturas_restantes` (`null` es sin tope); al agotarse, se corta y se registra.
+3. **Qué fechas faltan**: `busqueda pendiente` con `{"fuente": "...", "consulta": "..."}` devuelve los tramos de fechas de publicación aún no revisados dentro de `ventana_dias`. Ordenar el listado por fecha, de lo más nuevo a lo más antiguo, y filtrar por fecha en el portal cuando se pueda; lo anterior al tramo ya está revisado y en las bases.
+4. **Recorrer**: paginación completa hasta cubrir el tramo más antiguo, el fin de los resultados o el tope. Por cada resultado, `busqueda conocida` con `{"url": "...", "empresa": "...", "cargo": "..."}`: si ya es una oportunidad o una vista, se salta sin leerla (si es la misma vacante venida de otra fuente, sumar esa fuente con `oportunidad registrar`). Una misma vacante en varias fuentes es un solo empleo: la pista de `conocida` por empresa y cargo la compara el agente antes de decidir.
+5. **Resultado nuevo**: descartar a simple vista solo cuando el título o el resumen del listado muestran un mal fit declarado en `intereses.md`; se guarda con `busqueda vista` (`{"fuente", "empresa", "cargo", "url", "motivo"}`) y no se lee. Un portal difuso trae cientos de avisos ajenos o de nivel analista: esos solo suman al `vistas` de la consulta, y `busqueda vista` se reserva para los plausibles (jefaturas, familias secundarias) y para los leídos pero no registrados. Todo lo demás se lee, se verifica (§2) y se puntúa (§3), y se conserva aunque el puntaje salga bajo.
+   - **Fuera de ventana**: si el aviso trae una fecha de publicación anterior a `ventana_dias`, no se registra como oportunidad; queda como vista con su motivo y la fecha, y se informa al usuario si sigue vigente y encaja, para que decida si la quiere. Si la quiere, se verifica de nuevo hoy y se registra con su `publicada` (y `cierra_el` si lo trae): el código no filtra por ventana, así que entra al ranking como cualquier otra, con la brecha «fuera de ventana» anotada. La decisión vale para esa vacante, no cambia `ventana_dias`.
+   - **Aviso leído a medias**: si no se leyó completo, `publicacion` lo declara entre corchetes y la evidencia lo dice; no se completa de memoria.
+6. **Cierre de la consulta**: `busqueda consulta` con `{"fuente", "consulta", "paginas", "lecturas", "vistas", "nuevas", "cubre_desde", "motivo_corte"}`. `lecturas` son las publicaciones leídas completas; `vistas`, los resultados del listado; `nuevas`, las vacantes que pasaron al registro como oportunidad o vista. `cubre_desde` es el inicio del tramo más antiguo si se recorrió todo, o la fecha de la publicación más antigua a la que se llegó si se cortó (`motivo_corte`: tope, login, CAPTCHA o bloqueo). Si el portal no deja ordenar por fecha, `cubre_desde` es hoy: esa búsqueda no da por revisado nada.
+
+Un portal con búsqueda difusa (miles de resultados para un término genérico) se recorre con consultas más específicas y, si aun así no cabe, se corta con `motivo_corte` explícito. Si el portal no ordena por fecha pero la consulta se leyó entera, `cubre_desde` es el inicio de la ventana: lo revisado es el conjunto, no el orden. Al leer páginas con scripts en el navegador, espaciar las cargas (al menos 1 s) y no pasar de 40 s por llamada.
+
+Ante login, 2FA, CAPTCHA o aviso de bloqueo, pausar esa fuente, registrar el corte y avisar al usuario; no pedir ni escribir credenciales.
 
 ## 2. Verificar vigencia
 
@@ -68,8 +82,9 @@ Para cada vacante registrada sin evaluación vigente (o con la publicación camb
 
 1. Si todo está evaluado, `ranking generar` una sola vez. Si `pendientes` trae IDs, evaluarlos y generar de nuevo.
 2. Mostrar la tabla del Top: posición, cargo y empresa, quiero, tengo, total, cumple umbrales, vigencia (fecha de verificación), fuente y enlace, brecha principal. Los dos ejes siempre por separado. Contribución por criterio si el usuario la pide.
-3. Después: cambios respecto de la lista anterior (`NUEVA`, `SUBE`, `BAJA`, `SIN_CAMBIOS`, y las `salidas` con su motivo), las `descartadas` con su motivo (el usuario puede rescatarlas), cierres próximos (`cierra_el`), orden de ataque y las "sin verificar". El puntaje no es una probabilidad de entrevista.
-4. Calibración de U4: mostrar cuáles cumplen los umbrales y cuáles no, e invitar al usuario a revisarlos con este primer ranking, antes de cualquier envío automático. Los umbrales y pesos se cambian en `configuracion.json`, nunca en código.
+3. Fuera del Top (`fuera_del_top`): las evaluadas y vigentes que no entraron, con sus dos ejes y si cumplen los umbrales. Si el usuario sube el Top o baja los umbrales, reaparecen sin volver a buscarlas. Luego, por fuente: la última búsqueda y las consultas distintas (`busqueda resumen`) y lo de esta corrida (vacantes nuevas, descartadas a simple vista y dónde se cortó).
+4. Después: cambios respecto de la lista anterior (`NUEVA`, `SUBE`, `BAJA`, `SIN_CAMBIOS`, y las `salidas` con su motivo), las `descartadas` con su motivo (el usuario puede rescatarlas), cierres próximos (`cierra_el`), orden de ataque y las "sin verificar". El puntaje no es una probabilidad de entrevista.
+5. Calibración de U4: mostrar cuáles cumplen los umbrales y cuáles no, e invitar al usuario a revisarlos con este primer ranking, antes de cualquier envío automático. Los umbrales y pesos se cambian en `configuracion.json`, nunca en código.
 
 ## 5. Portales sugeridos
 

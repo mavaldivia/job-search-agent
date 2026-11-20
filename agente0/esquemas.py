@@ -32,6 +32,28 @@ class ConversionRenta(BaseModel):
     banda_monto_pct: float = Field(default=10, ge=0)
 
 
+class TopeCorrida(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    paginas: int = Field(gt=0)
+    lecturas: int = Field(gt=0)
+
+
+class Busqueda(BaseModel):
+    """Cuánto recorre cada búsqueda según el riesgo de la fuente (D4); valores iniciales a ajustar al iterar."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    # Páginas de resultados y publicaciones leídas por fuente y día. Sin tope para el riesgo que no figura aquí, y sin
+    # tope en el primer día de búsqueda de una fuente (primera pasada completa).
+    topes_por_riesgo: dict[Riesgo, TopeCorrida] = Field(
+        default_factory=lambda: {
+            "alto": TopeCorrida(paginas=3, lecturas=10),
+            "medio": TopeCorrida(paginas=5, lecturas=25),
+        }
+    )
+
+
 class Criterio(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -127,6 +149,7 @@ class Configuracion(BaseModel):
     priorizacion: Priorizacion = Field(default_factory=Priorizacion)
     compuerta: Compuerta = Field(default_factory=Compuerta)
     conversion_renta: ConversionRenta = Field(default_factory=ConversionRenta)
+    busqueda: Busqueda = Field(default_factory=Busqueda)
 
     @field_validator("autonomia")
     @classmethod
