@@ -24,9 +24,6 @@
 
 > Objetivo: la versión mínima que haga el flujo completo con un usuario, subiendo la autonomía de forma gradual, antes de abrir el agente a más personas. Cada ítem espera a las decisiones y confirmaciones de las que depende.
 
-- [ ] **B16 · Simulación de configuración** [dep: B6, B11]: Función "¿y si...?" sobre el último ranking: al cambiar umbrales, renta mínima, pesos o nivel, mostrar qué vacantes pasarían a cumplir o dejarían de cumplir las condiciones de auto-envío y cuáles irían a la cola de aprobación, sin modificar la configuración vigente. Pedido por el usuario 1 en U4. (I:6 C:3 H:7 → 2.16)
-  - Claude: implementar la simulación sobre las evidencias guardadas de cada puntaje y probarla con el primer ranking real.
-  - Usuario: probarla y ajustar los umbrales con ella antes de subir el nivel.
 - [ ] **B17 · Conversión automática de renta en formularios** [dep: B8]: Cuando un formulario pida la renta en otra moneda o base (por ejemplo bruto en USD) y la biblioteca no tenga esa cifra, que el sistema la calcule solo con el dólar del día y los descuentos legales vigentes, y deje el monto para aprobación según el nivel de autonomía. Pedido por el usuario 1 en B8, donde se hizo a mano. Es una decisión de diseño: presentar 2 opciones (módulo de código con tablas actualizables vs. procedimiento de la skill con consulta a fuentes oficiales) antes de construir. (I:6 C:3 H:7 → 2.16)
   - Claude: presentar las dos opciones con tradeoffs, recomendar y, con la confirmación del usuario, implementar y probar.
   - Usuario: elegir la opción y confirmar los supuestos de descuentos (AFP y plan de salud).

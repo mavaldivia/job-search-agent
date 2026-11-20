@@ -2,7 +2,17 @@ import json
 import sys
 from pathlib import Path
 
-from agente0 import autonomia, configuracion, fuentes, oportunidades, postulaciones, ranking, recordatorios, respuestas
+from agente0 import (
+    autonomia,
+    configuracion,
+    fuentes,
+    oportunidades,
+    postulaciones,
+    ranking,
+    recordatorios,
+    respuestas,
+    simulacion,
+)
 from agente0.cv_limites import calibrar, cargar_limites, verificar
 from agente0.datos import DatosError, cargar_configuracion, crear_estructura, datos_dir
 from agente0.revisiones import Revision, fecha_ultima_revision, registrar_revision
@@ -19,6 +29,7 @@ USO = (
     " | ranking generar|ultimo | fuentes listar | fuentes guardar|agregar (JSON por stdin)"
     " | autonomia evaluar <id> (JSON por stdin: portal, juicios) | autonomia matriz [nivel] | autonomia aviso <nivel>"
     " | configuracion editar (JSON por stdin: cambios, confirmacion)"
+    " | simulacion (JSON por stdin: cambios; no modifica la configuración)"
 )
 ACCIONES_POSTULACION = ("crear", "ver", "intentar", "confirmar", "fallido", "evento", "recompensar", "finalizar")
 
@@ -40,6 +51,8 @@ def main(argv: list[str]) -> int:
         return _autonomia_texto(argv[1], argv[2:])
     if argv == ["configuracion", "editar"]:
         return _configuracion_editar()
+    if argv == ["simulacion"]:
+        return _simulacion()
     if argv[:1] in (["ranking"], ["fuentes"]) and len(argv) == 2:
         return _ranking_o_fuentes(argv[0], argv[1])
     if len(argv) == 4 and argv[:2] == ["cv", "calibrar"] and argv[3].isdigit():
@@ -227,6 +240,15 @@ def _configuracion_editar() -> int:
                 indent=2,
             )
         )
+    except (DatosError, ValueError, TypeError, KeyError, OSError) as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 1
+    return 0
+
+
+def _simulacion() -> int:
+    try:
+        _imprimir(simulacion.simular(datos_dir(), json.loads(sys.stdin.read())["cambios"]))
     except (DatosError, ValueError, TypeError, KeyError, OSError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 1

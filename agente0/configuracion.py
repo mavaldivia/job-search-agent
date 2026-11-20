@@ -36,21 +36,27 @@ def _fusionar(actual: dict, cambios: dict) -> dict:
     return fusion
 
 
+def aplicar(actual: Configuracion, cambios: dict) -> tuple[Configuracion, list[str]]:
+    """La configuración que resulta de un cambio parcial, validada y sin escribir nada, con sus advertencias."""
+    nueva = Configuracion.model_validate(_fusionar(actual.model_dump(mode="json"), cambios))
+    advertencias = []
+    if "autonomia" in cambios and nueva.autonomia != cambios["autonomia"]:
+        advertencias.append(f"autonomía {cambios['autonomia']} redondeada hacia abajo a {nueva.autonomia} % (D12).")
+    if nueva.autonomia >= 75:
+        advertencias += _listas_vacias(nueva)
+    return nueva, advertencias
+
+
 def editar(
     raiz: Path, cambios: dict, confirmacion: str | None = None, ahora: datetime | None = None
 ) -> tuple[Configuracion, list[str]]:
     """Aplica un cambio parcial a la configuración sin tocar código (U4). Devuelve la vigente y las advertencias."""
     actual = cargar_configuracion(raiz)
-    nueva = Configuracion.model_validate(_fusionar(actual.model_dump(mode="json"), cambios))
-    advertencias = []
-    if "autonomia" in cambios and nueva.autonomia != cambios["autonomia"]:
-        advertencias.append(f"autonomía {cambios['autonomia']} redondeada hacia abajo a {nueva.autonomia} % (D12).")
+    nueva, advertencias = aplicar(actual, cambios)
     if nueva.autonomia == 100 and actual.autonomia != 100 and not (confirmacion or "").strip():
         raise ConfiguracionError(
             "activar 100 % exige mostrar el aviso de D12 (`autonomia aviso 100`) y la confirmación explícita del usuario."
         )
-    if nueva.autonomia >= 75:
-        advertencias += _listas_vacias(nueva)
 
     destino = raiz / ARCHIVO_CONFIGURACION
     temporal = destino.with_name(destino.name + ".tmp")

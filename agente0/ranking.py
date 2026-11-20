@@ -93,7 +93,7 @@ def puntuar(o: Oportunidad, config: Priorizacion) -> tuple[float, float, float, 
     )
 
 
-def _motivo_de_descarte(o: Oportunidad, config: Priorizacion, empresas_en_proceso: set[str]) -> str | None:
+def motivo_de_descarte(o: Oportunidad, config: Priorizacion, empresas_en_proceso: set[str]) -> str | None:
     if o.rescatada:
         return None
     activos = set(config.filtros_activos)
@@ -124,6 +124,11 @@ def _postulaciones_existentes(raiz: Path) -> tuple[set[str], set[str]]:
     return ids, empresas_en_proceso
 
 
+def ordenar_top(totales: dict[str, float], ids_previos: list[str], top: int) -> list[str]:
+    # Un empate lo gana quien ya estaba en el Top: una vacante nueva entra solo si supera a la última.
+    return sorted(totales, key=lambda i: (-totales[i], i not in ids_previos, i))[:top]
+
+
 def generar(raiz: Path, ahora: datetime | None = None) -> Ranking:
     """D11: filtra (las descartadas pasan a DESCARTADO), puntúa y arma el Top con la última lista como base."""
     ahora = ahora or datetime.now().astimezone()
@@ -138,7 +143,7 @@ def generar(raiz: Path, ahora: datetime | None = None) -> Ranking:
         if o.id in ids_postulados:
             oportunidades.cambiar_estado(raiz, o.id, "EN_POSTULACION", "ya existe una postulación")
             continue
-        motivo = _motivo_de_descarte(o, config, empresas_en_proceso)
+        motivo = motivo_de_descarte(o, config, empresas_en_proceso)
         if motivo:
             oportunidades.cambiar_estado(raiz, o.id, "DESCARTADO", motivo)
             descartadas.append(Descartada(id=o.id, empresa=o.empresa, cargo=o.cargo, motivo=motivo))
@@ -147,8 +152,7 @@ def generar(raiz: Path, ahora: datetime | None = None) -> Ranking:
         else:
             puntuadas[o.id] = (o, *puntuar(o, config))
 
-    # Un empate lo gana quien ya estaba en el Top: una vacante nueva entra solo si supera a la última.
-    orden = sorted(puntuadas, key=lambda i: (-puntuadas[i][3], i not in ids_previos, i))[: config.top]
+    orden = ordenar_top({i: p[3] for i, p in puntuadas.items()}, ids_previos, config.top)
     cambios = _cambios(ids_previos, orden)
     top = []
     for posicion, id_ in enumerate(orden, start=1):

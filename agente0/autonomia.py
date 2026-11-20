@@ -92,26 +92,19 @@ def evaluar(
     compuerta = config.compuerta
     o = oportunidades.cargar(raiz, id_)
     fuente = _fuente(raiz, portal)
-    nivel = _nivel_efectivo(config.autonomia, compuerta, fuente)
+    nivel = nivel_efectivo(config.autonomia, compuerta, fuente)
     todas = postulaciones.listar(raiz)
     juicios = juicios or Juicios()
 
     vigentes = _vigentes(o, config.priorizacion, todas, juicios, ahora)
-    preferencias = _preferencias(o, config.priorizacion, compuerta, todas, juicios, nivel)
+    preferencias = evaluar_preferencias(o, config.priorizacion, compuerta, todas, juicios, nivel)
     condiciones = vigentes + preferencias
 
-    acciones = dict(MATRIZ[nivel])
+    acciones, motivos_envio = acciones_de_envio(nivel, preferencias, compuerta, fuente, o)
     motivos = []
     if nivel < config.autonomia:
         motivos.append(f"nivel limitado a {nivel} % por el tope de {fuente.nombre} (riesgo {fuente.riesgo})")
-    if nivel == 75:
-        for c in preferencias:
-            if c.resultado in ("no_cumple", "no_evaluada"):
-                acciones["envio"] = "aprobar"
-                motivos.append(f"{c.nombre}: {c.detalle}")
-    if _siempre_aprobar(compuerta, fuente, o):
-        acciones["envio"] = "aprobar"
-        motivos.append("excepción de la configuración: este portal o empresa se aprueba a mano")
+    motivos += motivos_envio
 
     bloqueos = [f"{c.nombre}: {c.detalle}" for c in vigentes if c.resultado != "cumple"]
     bloqueo_limites, espera = _limites(raiz, compuerta, fuente, ahora)
@@ -138,10 +131,27 @@ def _fuente(raiz: Path, portal: str) -> FuenteBusqueda:
     )
 
 
-def _nivel_efectivo(autonomia: int, compuerta: Compuerta, fuente: FuenteBusqueda) -> int:
+def nivel_efectivo(autonomia: int, compuerta: Compuerta, fuente: FuenteBusqueda) -> int:
     por_portal = {nombre.casefold(): tope for nombre, tope in compuerta.topes_por_portal.items()}
     tope = por_portal.get(fuente.nombre.casefold(), compuerta.tope_por_riesgo.get(fuente.riesgo, 100))
     return min(autonomia, tope)
+
+
+def acciones_de_envio(
+    nivel: int, preferencias: list[Condicion], compuerta: Compuerta, fuente: FuenteBusqueda, o: Oportunidad
+) -> tuple[dict[Accion, Modo], list[str]]:
+    """La matriz de D12 para el nivel y por qué el envío no es automático aunque el nivel lo permitiría."""
+    acciones = dict(MATRIZ[nivel])
+    motivos = []
+    if nivel == 75:
+        for c in preferencias:
+            if c.resultado in ("no_cumple", "no_evaluada"):
+                acciones["envio"] = "aprobar"
+                motivos.append(f"{c.nombre}: {c.detalle}")
+    if _siempre_aprobar(compuerta, fuente, o):
+        acciones["envio"] = "aprobar"
+        motivos.append("excepción de la configuración: este portal o empresa se aprueba a mano")
+    return acciones, motivos
 
 
 def _siempre_aprobar(compuerta: Compuerta, fuente: FuenteBusqueda, o: Oportunidad) -> bool:
@@ -190,7 +200,7 @@ def _juicio_bool(nombre: str, juicio: JuicioBool | None) -> Condicion:
     )
 
 
-def _preferencias(
+def evaluar_preferencias(
     o: Oportunidad,
     prio: Priorizacion,
     compuerta: Compuerta,
@@ -341,7 +351,7 @@ def aviso(raiz: Path, nivel: int) -> list[str]:
     for fuente in fuentes.cargar(raiz):
         if not fuente.activa:
             continue
-        efectivo = _nivel_efectivo(nivel, compuerta, fuente)
+        efectivo = nivel_efectivo(nivel, compuerta, fuente)
         excepcion = fuente.nombre.casefold() in {p.casefold() for p in compuerta.siempre_aprobar_portales}
         envio = "con tu aprobación" if excepcion or MATRIZ[efectivo]["envio"] == "aprobar" else "automático"
         limite = getattr(compuerta.limites_diarios, fuente.riesgo)

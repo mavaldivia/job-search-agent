@@ -1,6 +1,6 @@
 ---
 name: actualizar_configuracion
-description: Operación 5 del menú de Agente0 (Actualizar configuración). Muestra la configuración vigente del usuario y aplica los cambios que pida (nivel de autonomía, condiciones de auto-envío, umbrales de match, renta mínima, límites y topes por portal, excepciones, recordatorios, pesos) sin tocar código, con vista previa de qué pasa a requerir aprobación y el aviso de D12 antes de activar 100 %. Usar cuando el usuario invoque /actualizar_configuracion, elija "Actualizar configuración" en el menú o acepte el recordatorio de configuración.
+description: Operación 5 del menú de Agente0 (Actualizar configuración). Muestra la configuración vigente del usuario y aplica los cambios que pida (nivel de autonomía, condiciones de auto-envío, umbrales de match, renta mínima, límites y topes por portal, excepciones, recordatorios, pesos) sin tocar código, con simulación de qué vacantes cambiarían de destino (B16), vista previa de qué pasa a requerir aprobación y el aviso de D12 antes de activar 100 %. Usar cuando el usuario invoque /actualizar_configuracion, elija "Actualizar configuración" en el menú o acepte el recordatorio de configuración.
 ---
 
 # actualizar_configuracion
@@ -34,13 +34,18 @@ Cada cambio es un JSON parcial para `configuracion editar`; los bloques se fusio
 Antes de aplicar, mostrar el antes y el después de cada valor.
 
 - **Valores con números** (umbrales, renta mínima, límites): pedirlos al usuario. La renta mínima va en el mismo monto, moneda y período que la renta publicada de las vacantes (así la compara el código).
-- **Umbrales de match**: si el usuario los cambia, sugerir mirar `ranking ultimo` y mostrar, vacante por vacante, cuáles pasarían a cumplir o dejar de cumplir con el valor nuevo (la simulación automática llega con B16).
+- **Simulación (B16)**: antes de aplicar un cambio de umbrales, pesos, renta mínima, filtros, listas, topes, excepciones o nivel, correr `python -m agente0 simulacion` con `{"cambios": {...}}` por stdin, el mismo JSON de `configuracion editar`; no escribe nada. Devuelve una fila por vacante evaluada con su resultado vigente y el hipotético (`destino`: `fuera`, `sin_evaluacion`, `cola`, `auto_condicionado` o `auto`; puntajes; puesto en el Top) y los `cambios`.
+  - Mostrar solo las filas con `cambios` y, de cada una, empresa, cargo, qué cambia y, si el destino nuevo es `cola`, sus `motivos`. Si ninguna cambia, decirlo.
+  - Las filas `referencial` (ya en postulación o descartadas) son evidencia para calibrar, no candidatas.
+  - Decir siempre que `auto_condicionado` es automático solo si el agente califica seniority y ubicación dentro de las listas al enviar, y lo que lista `no_simulado`. Mostrar las `advertencias`.
+  - Si las vacantes no traen `renta_publicada`, cambiar la renta mínima no mueve nada: decirlo.
+  - Con pocas vacantes la simulación no calibra por sí sola: decirlo si son menos de diez.
 - **Reglas siempre vigentes** (vigencia del día, no postulada antes, empresa no excluida, CV auditado, respuestas documentadas) y las pausas de D4: no son configurables; si el usuario pide quitarlas, decir que no se pueden desactivar.
 - **Condiciones de preferencia**: quitar una de `condiciones_preferencia` la desactiva; es una decisión del usuario, nombrar qué deja de exigirse.
 
 ## 3. Cambiar el nivel de autonomía
 
-1. Mostrar `autonomia matriz <nivel nuevo>` como vista previa de qué pasará a requerir aprobación, y decir que aplica a lo pendiente y futuro.
+1. Mostrar `autonomia matriz <nivel nuevo>` como vista previa de qué pasará a requerir aprobación y la simulación con `{"autonomia": <nivel nuevo>}` (§2), y decir que aplica a lo pendiente y futuro.
 2. Subir de a un escalón y probar cada nivel antes del siguiente (U4, B11). Si el usuario pide saltar más de uno, decir qué se saltaría y dejarlo decidir.
 3. Del 75 % hacia arriba, revisar antes que las listas de condiciones estén definidas y que los umbrales se hayan calibrado con un ranking real.
 4. **Activar 100 %**: no ofrecerlo por iniciativa propia; solo si el usuario lo pide. Mostrar el aviso completo de `python -m agente0 autonomia aviso 100` (acciones externas, portales, límites, qué deja de regir) y pedir confirmación explícita con `AskUserQuestion`. Pasar sus palabras como `confirmacion`; el código la registra con fecha en `configuracion/autonomia.jsonl` y rechaza el cambio sin ella.
