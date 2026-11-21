@@ -8,10 +8,10 @@ from agente0.datos import cargar_configuracion
 from agente0.revisiones import fecha_onboarding, fecha_ultima_revision
 
 ARCHIVO_RECORDATORIOS = "configuracion/recordatorios.json"
-Caso = Literal["experiencia", "cv_base", "configuracion"]
+Caso = Literal["experiencia", "cv_base", "configuracion", "terminos"]
 CASOS = get_args(Caso)
 # Experiencia no se registra aquí: su reloj es la bitácora de revisiones de perfil.
-CASOS_CON_REGISTRO = ("cv_base", "configuracion")
+CASOS_CON_REGISTRO = ("cv_base", "configuracion", "terminos")
 
 
 class EstadoCaso(BaseModel):
@@ -64,6 +64,9 @@ def fecha_ultima_operacion(raiz: Path, caso: Caso, recordatorios: Recordatorios 
     registrada = (recordatorios or _cargar(raiz)).casos.get(caso, EstadoCaso()).ultima_operacion
     if caso == "cv_base":
         return max([*_fechas_cv_base(raiz), *([registrada] if registrada else [])], default=None)
+    if caso == "terminos":
+        # Sin renovación registrada no hay reloj: lo parte la primera búsqueda con términos (B22).
+        return registrada
     return registrada or fecha_onboarding(raiz)
 
 

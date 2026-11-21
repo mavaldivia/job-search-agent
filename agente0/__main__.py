@@ -1,12 +1,15 @@
 import json
 import sys
+from datetime import date
 from pathlib import Path
 
 from agente0 import (
     autonomia,
     busquedas,
+    carriles,
     configuracion,
     fuentes,
+    medicion,
     mercado,
     oportunidades,
     postulaciones,
@@ -14,6 +17,8 @@ from agente0 import (
     recordatorios,
     renta,
     respuestas,
+    resumen,
+    revisiones_semanales,
     simulacion,
 )
 from agente0.cv_limites import calibrar, cargar_limites, verificar
@@ -22,7 +27,7 @@ from agente0.revisiones import Revision, fecha_ultima_revision, registrar_revisi
 
 USO = (
     "uso: python -m agente0 init | configuracion ver | revision ultima | revision registrar (JSON por stdin)"
-    " | recordatorio pendientes | recordatorio preguntado|operacion <experiencia|cv_base|configuracion>"
+    " | recordatorio pendientes | recordatorio preguntado|operacion|ultima <experiencia|cv_base|configuracion|terminos>"
     " | cv calibrar <archivo.tex> <paginas> | cv verificar <archivo.tex> <limites.json>"
     " | postulacion crear | postulacion ver|intentar|confirmar|fallido|evento|recompensar|finalizar <id> (JSON por stdin salvo ver y recompensar)"
     " | respuestas listar|pendientes | respuestas ver|versiones <categoria> [<variante>]"
@@ -34,6 +39,9 @@ USO = (
     " | autonomia evaluar <id> (JSON por stdin: portal, juicios) | autonomia matriz [nivel] | autonomia aviso <nivel>"
     " | configuracion editar (JSON por stdin: cambios, confirmacion)"
     " | simulacion (JSON por stdin: cambios; no modifica la configuración)"
+    " | carriles (plan de carriles por portal para postular en paralelo)"
+    " | resumen semanal [desde hasta] | resumen revisado (JSON por stdin: horas_esfuerzo, nota, desde y hasta opcionales)"
+    " | medicion ventanas | medicion respuestas"
     " | mercado listar | mercado guardar (JSON por stdin) | mercado evaluar <id> (JSON por stdin: rol, seniority, mercado, presencialidad, evidencia)"
     " | renta factor ver <pais> <liquido> | renta factor guardar (JSON por stdin: pais, factor)"
     " | renta convertir (JSON por stdin: liquido, pais, a_bruto, tasa)"
@@ -62,6 +70,12 @@ def main(argv: list[str]) -> int:
         return _configuracion_editar()
     if argv == ["simulacion"]:
         return _simulacion()
+    if argv == ["carriles"]:
+        return _carriles()
+    if argv[:1] == ["resumen"]:
+        return _resumen(argv[1:])
+    if argv[:1] == ["medicion"] and len(argv) == 2:
+        return _medicion(argv[1])
     if argv[:1] == ["renta"]:
         return _renta(argv[1:])
     if argv[:1] == ["mercado"]:
@@ -109,6 +123,8 @@ def _recordatorio(resto: list[str]) -> int:
             recordatorios.registrar_pregunta(raiz, resto[1])
         elif len(resto) == 2 and resto[0] == "operacion" and resto[1] in recordatorios.CASOS:
             recordatorios.registrar_operacion(raiz, resto[1])
+        elif len(resto) == 2 and resto[0] == "ultima" and resto[1] in recordatorios.CASOS:
+            print(recordatorios.fecha_ultima_operacion(raiz, resto[1]) or "sin_registro")
         else:
             print(USO, file=sys.stderr)
             return 2
@@ -295,6 +311,50 @@ def _simulacion() -> int:
     try:
         _imprimir(simulacion.simular(datos_dir(), json.loads(sys.stdin.read())["cambios"]))
     except (DatosError, ValueError, TypeError, KeyError, OSError) as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 1
+    return 0
+
+
+def _carriles() -> int:
+    try:
+        _imprimir(carriles.planear(datos_dir()))
+    except (DatosError, ValueError, OSError) as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 1
+    return 0
+
+
+def _resumen(resto: list[str]) -> int:
+    try:
+        raiz = datos_dir()
+        if resto[:1] == ["semanal"] and len(resto) in (1, 3):
+            fechas = [date.fromisoformat(f) for f in resto[1:]]
+            resultado = resumen.resumir(raiz, *fechas)
+        elif resto == ["revisado"]:
+            datos = json.loads(sys.stdin.read())
+            desde, hasta = revisiones_semanales.periodo_pendiente(raiz)
+            datos["desde"] = date.fromisoformat(datos["desde"]) if "desde" in datos else desde
+            datos["hasta"] = date.fromisoformat(datos["hasta"]) if "hasta" in datos else hasta
+            resultado = revisiones_semanales.registrar(raiz, **datos)
+        else:
+            print(USO, file=sys.stderr)
+            return 2
+        _imprimir(resultado)
+    except (DatosError, ValueError, TypeError, OSError) as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 1
+    return 0
+
+
+def _medicion(accion: str) -> int:
+    try:
+        if accion not in ("ventanas", "respuestas"):
+            print(USO, file=sys.stderr)
+            return 2
+        raiz = datos_dir()
+        _imprimir(medicion.ventanas(raiz) if accion == "ventanas" else medicion.respuestas(raiz))
+    except (DatosError, ValueError, OSError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 1
     return 0

@@ -18,7 +18,12 @@ def test_autonomia_fuera_de_rango_se_rechaza(valor):
 def test_valores_por_defecto_son_los_de_d15():
     configuracion = Configuracion()
     assert configuracion.autonomia == 0
-    assert configuracion.recordatorios_dias.model_dump() == {"experiencia": 15, "cv_base": 30, "configuracion": 60}
+    assert configuracion.recordatorios_dias.model_dump() == {
+        "experiencia": 15,
+        "cv_base": 30,
+        "configuracion": 60,
+        "terminos": 15,
+    }
     assert configuracion.repetir_recordatorio_horas == 24
 
 

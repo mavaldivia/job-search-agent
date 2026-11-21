@@ -107,7 +107,7 @@ def evaluar(
     motivos += motivos_envio
 
     bloqueos = [f"{c.nombre}: {c.detalle}" for c in vigentes if c.resultado != "cumple"]
-    bloqueo_limites, espera = _limites(raiz, compuerta, fuente, ahora)
+    bloqueo_limites, espera = limites_de_envio(raiz, compuerta, fuente, ahora)
     return Decision(
         oportunidad=id_,
         portal=fuente.nombre,
@@ -285,25 +285,37 @@ def _renta(o: Oportunidad, prio: Priorizacion) -> tuple[str, str]:
     return ("cumple" if ok else "no_cumple"), f"renta publicada {o.renta_publicada}, mínimo {prio.renta_minima}"
 
 
-def _limites(raiz: Path, compuerta: Compuerta, fuente: FuenteBusqueda, ahora: datetime) -> tuple[list[str], int]:
-    """D12 y D4: tope de envíos por día en el portal y pausa entre envíos, sin ráfagas."""
-    intentos = postulaciones.intentos_de_envio(raiz)
+def cupo_diario(
+    intentos: list[postulaciones.IntentoDeEnvio], compuerta: Compuerta, fuente: FuenteBusqueda, ahora: datetime
+) -> tuple[int, int]:
+    """(límite diario del portal según su riesgo, envíos ya intentados hoy en él)."""
     hoy = ahora.astimezone().date()
-    en_portal = [
-        i
+    hechos = sum(
+        1
         for i in intentos
         if i.portal and i.portal.casefold() == fuente.nombre.casefold() and i.momento.astimezone().date() == hoy
-    ]
-    limite = getattr(compuerta.limites_diarios, fuente.riesgo)
+    )
+    return getattr(compuerta.limites_diarios, fuente.riesgo), hechos
+
+
+def limites_de_envio(
+    raiz: Path, compuerta: Compuerta, fuente: FuenteBusqueda, ahora: datetime
+) -> tuple[list[str], int]:
+    """D12 y D4: tope de envíos por día en el portal y pausa entre envíos del mismo portal, sin ráfagas."""
+    intentos = postulaciones.intentos_de_envio(raiz)
+    limite, hechos = cupo_diario(intentos, compuerta, fuente, ahora)
     bloqueos = []
-    if len(en_portal) >= limite:
-        bloqueos.append(f"límite diario: {len(en_portal)} de {limite} envíos hoy en {fuente.nombre}")
+    if hechos >= limite:
+        bloqueos.append(f"límite diario: {hechos} de {limite} envíos hoy en {fuente.nombre}")
     espera = 0
-    if intentos:
-        transcurrido = (ahora - max(i.momento for i in intentos)).total_seconds()
+    # B25: el riesgo de bloqueo es del portal, así que la pausa se mide contra el último intento en ese mismo portal;
+    # portales distintos pueden enviar a la vez (cada carril avanza en serie dentro de su portal).
+    historial = [i for i in intentos if i.portal and i.portal.casefold() == fuente.nombre.casefold()]
+    if historial:
+        transcurrido = (ahora - max(i.momento for i in historial)).total_seconds()
         espera = max(0, math.ceil(compuerta.pausa_minutos * 60 - transcurrido))
         if espera:
-            bloqueos.append(f"pausa entre envíos: faltan {espera} s")
+            bloqueos.append(f"pausa entre envíos: faltan {espera} s en {fuente.nombre}")
     return bloqueos, espera
 
 

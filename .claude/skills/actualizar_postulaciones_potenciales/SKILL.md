@@ -46,6 +46,8 @@ python -m agente0 busqueda cupo | pendiente | conocida | consulta | vista       
 
 ## 1. Descubrir
 
+Reloj de términos (B22): si `python -m agente0 recordatorio ultima terminos` responde `sin_registro`, esta es la primera búsqueda con términos: al cerrar la corrida, `recordatorio operacion terminos` parte el reloj de 15 días. La renovación de los términos es de la skill `investigar_terminos`, no de esta.
+
 Se recorren **todas** las fuentes activas, también las de riesgo medio y alto, con el consentimiento por portal de D3 y los límites de D4. Para cada fuente activa y cada variante de consulta:
 
 1. **Variantes**: salen de `intereses.md` (cargos de prioridad alta y secundarios) con sinónimos y traducciones (Lead, Manager, Jefe, Head; español e inglés). Cada variante es una consulta distinta y se guarda con su texto exacto.
@@ -86,15 +88,23 @@ Para cada vacante registrada sin evaluación vigente (o con la publicación camb
 4. Después: cambios respecto de la lista anterior (`NUEVA`, `SUBE`, `BAJA`, `SIN_CAMBIOS`, y las `salidas` con su motivo), las `descartadas` con su motivo (el usuario puede rescatarlas), cierres próximos (`cierra_el`), orden de ataque y las "sin verificar". El puntaje no es una probabilidad de entrevista.
 5. Calibración de U4: mostrar cuáles cumplen los umbrales y cuáles no, e invitar al usuario a revisarlos con este primer ranking, antes de cualquier envío automático. Los umbrales y pesos se cambian en `configuracion.json`, nunca en código.
 
-## 5. Portales sugeridos
+## 5. Portales sugeridos y búsqueda de fuentes nuevas (B20)
 
-Si el perfil sugiere una fuente que no está en la lista y vale la pena, proponerla con una línea de por qué e invitar al usuario a crear la cuenta si hace falta. El agente nunca crea la cuenta (D4). La fuente entra con `fuentes agregar` solo cuando el usuario la aprueba.
+Si el perfil sugiere una fuente que no está en la lista y vale la pena, proponerla con una línea de por qué e invitar al usuario a crear la cuenta si hace falta. El agente nunca crea la cuenta (D4). Sin la instrucción del usuario de avanzar sin su aprobación, la fuente entra con `fuentes agregar` solo cuando él la aprueba.
+
+Para investigar fuentes nuevas a pedido del usuario: un subagente por categoría (headhunters, portales corporativos, bolsas especializadas y agregadores, remoto internacional), solo con `WebSearch` y `WebFetch`, sin Chrome, sin login y sin datos personales: reciben el país, el nivel y las palabras de los cargos, y la lista de fuentes que ya existen. Cada candidata se valida con la ventana de 30 días (`ventana_dias`): sirve solo si tiene al menos una vacante afín publicada en ese período, con su enlace y su fecha; una fuente que no publica fechas (por ejemplo un ATS) se valida por vigencia y se dice así. Cada una entra con tipo, país, enlace, método (`web` si el listado se lee sin JavaScript, `navegador` si no) y riesgo, y con `activa: false` si exige cuenta que el usuario no tiene. En la primera búsqueda de la fuente nueva, una que no aporta nada afín se desactiva (`fuentes guardar` con `activa: false`) y queda anotada la razón en `docs/decisiones.md`. Un agregador sirve para descubrir: una vacante entra al registro solo con su enlace oficial resuelto.
 
 ## 6. Acciones del usuario sobre el ranking
 
 - Descartar una vacante: `oportunidad estado` a `DESCARTADO` con motivo "decisión del usuario".
 - Rescatar una descartada: `oportunidad estado` a `POTENCIAL`; el código no la vuelve a descartar por filtros.
 - Si el usuario pide postular, decir que el subflujo todavía no está construido.
+
+## 7. Búsqueda en paralelo por fuente (B25)
+
+Las fuentes son independientes entre sí: en vez de recorrerlas una tras otra, el agente principal lanza **un subagente por fuente activa**, hasta `compuerta.carriles_en_paralelo` a la vez, y las demás esperan su turno. Cada subagente, con su propia pestaña, hace §1 a §3 solo para su fuente: `busqueda cupo`, `pendiente`, `conocida`, `registrar`, `evaluar`, `consulta` y `vista`, respetando el cupo y los topes de su riesgo; lee antes `perfil/perfil.md` e `intereses.md` para puntuar. Un subagente no agrega fuentes, no genera el ranking y no pide aprobaciones: ante login, CAPTCHA o bloqueo registra el corte y sigue con otra consulta o termina.
+
+El agente principal, al juntar los reportes: (1) busca duplicados entre fuentes por empresa y cargo normalizados (el mismo aviso con la empresa escrita distinto) y los consolida; dos subagentes que registran la misma vacante a la vez pueden pisar la lista de fuentes de una de las dos, así que repasa `oportunidad listar` por esos casos; (2) corre `ranking generar` una sola vez y presenta §4. El reporte de cada subagente es breve: consultas hechas, vacantes nuevas con ID, descartadas a simple vista, cortes y su causa, y las dudas de duplicado.
 
 ## Formato de las preguntas
 

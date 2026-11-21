@@ -7,7 +7,7 @@ description: Pasos 1 a 3 del subflujo de postulación de Agente0 (postular a una
 
 Diseño: D4 (navegador y pausas), D9 (respuestas tipo), D12 (autonomía), D13 (inicio) y D14 (estados y reintentos) en `docs/decisiones.md`; flujo en `docs/contexto_completo.md` §5.3 a §5.5. Esta skill es genérica: no lleva datos de ningún usuario.
 
-Alcance: postular a **una** vacante. El nivel de autonomía decide qué pasos se hacen solos y cuáles se aprueban; lo calcula el código (`autonomia evaluar`), no tú de memoria. Al 0 % cada texto se muestra literal y se aprueba antes de escribirlo, y el envío final se confirma aparte.
+Alcance: postular a **una** vacante (para varias a la vez, por carriles de portal, ver §6). El nivel de autonomía decide qué pasos se hacen solos y cuáles se aprueban; lo calcula el código (`autonomia evaluar`), no tú de memoria. Al 0 % cada texto se muestra literal y se aprueba antes de escribirlo, y el envío final se confirma aparte.
 
 ## Reglas que no se negocian
 
@@ -75,3 +75,18 @@ Avanzar paso a paso. En cada uno: leer los campos y proponer el texto literal co
 - Si no hay confirmación clara: queda `ENVIO_INTENTADO`; verificar en el portal o el correo; si el envío falló sin enviarse, `postulacion fallido <id>`; si no se puede verificar, pedir intervención y no reenviar.
 - Guardar como respuestas `agente` (`respuestas guardar`, con fuente) los textos nuevos que sirvan para otras vacantes; quedan pendientes de revisión del usuario.
 - Cerrar la pestaña que se abrió, salvo que el usuario quiera conservarla.
+
+## 6. Varias vacantes a la vez: carriles por portal (B25)
+
+Para postular a más de una vacante del Top, el agente principal no las hace de a una: `python -m agente0 carriles` reparte el Top en **carriles**, uno por portal, con el nivel efectivo, cómo se resuelve el envío (`envio` y `envio_condicionado`), el cupo del día, la espera por pausa, las `vacantes` de hoy (ya acotadas al cupo), las `en_espera` (quedan `POTENCIAL` para mañana, D13) y las `en_cola` (ya `PREPARADA`). Es lo que cambia B25: la pausa entre envíos se mide **por portal**, no entre portales.
+
+- **Un subagente por carril**, hasta `en_paralelo` a la vez (`compuerta.carriles_en_paralelo`); si hay más portales, los demás esperan su turno. Cada subagente trabaja sus vacantes **en serie** de §0 a §5, con su propia pestaña (abrirla él con `tabs_create_mcp`, no tocar las de otros carriles y cerrar la suya al terminar, salvo la que deje en la vista previa para aprobación). Recibe el ID de la oportunidad, el portal, la ruta de los datos y esta skill, nada más.
+- **Primero la sesión**: lo primero que hace un carril es abrir el portal en su pestaña y validar la sesión (§2). Sin sesión, el carril se detiene y avisa antes de adaptar ningún CV: no se gasta trabajo en un portal al que no se puede entrar.
+- **Pestañas**: con varios carriles en Chrome a la vez, cada subagente cierra solo la pestaña que él creó (con su `tabId`), nunca el grupo de pestañas ni las de otros: un carril cerró el grupo de otro en la primera corrida real.
+- **Archivos compartidos**: un carril no escribe la biblioteca de respuestas (`respuestas guardar`) ni la tabla de mercado ni los factores de renta; los textos nuevos y la renta que proponga van en su reporte y el agente principal los guarda.
+- **Un subagente no pide aprobaciones**: el usuario no está mirando su conversación. Donde `acciones.envio` es `aprobar`, el carril prepara todo (renta de mercado, CV adaptado, formulario hasta la vista previa, `postulacion crear`) y se detiene antes de `postulacion intentar`: la postulación queda `PREPARADA`, en la cola de ese portal, con la pestaña abierta en la vista previa y su `tabId` en el reporte. Donde es `automatico`, envía respetando `espera_segundos` y el cupo: `autonomia evaluar` antes de cada vacante, nunca saltarse la pausa. Un texto o un monto que exige aprobación en todo nivel (renta, preguntas abiertas nuevas, datos del perfil del portal) detiene esa vacante con la propuesta en el reporte; el carril sigue con la siguiente.
+- **Pausa de un carril**: CAPTCHA, login, 2FA, términos, campo imposible o aviso de bloqueo detienen **solo ese carril**: lo deja dicho en el reporte y los demás siguen. Un carril de riesgo alto que ve señal de bloqueo no reintenta.
+- **Escritura compartida**: cada subagente solo escribe en la carpeta de sus vacantes (`oportunidades/<id>`, `postulaciones/<id>`, `cv/`); `ranking generar`, `fuentes` y la configuración los toca solo el agente principal.
+- **Reporte del carril** (breve): por vacante, el estado final (`POSTULADO`, `PREPARADA` en cola con su `tabId`, omitida con motivo, o detenida con la causa), y los montos o textos que esperan aprobación. El agente principal junta los reportes, muestra al usuario la cola de aprobación por portal (cada ítem con su resumen y `motivos`) y, con el OK de cada envío, lo completa él en la pestaña dejada o repite §2 a §4 si la pestaña ya no existe.
+- **Sin carril**: las vacantes de `sin_carril` (por ejemplo un portal corporativo sin fuente activa) se informan al usuario y no se postulan.
+

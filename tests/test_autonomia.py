@@ -353,18 +353,20 @@ def test_el_limite_diario_por_riesgo_bloquea_el_envio_siguiente(raiz, tmp_path):
     assert not any(b.startswith("límite diario") for b in al_dia_siguiente.bloqueos)
 
 
-def test_la_pausa_entre_envios_se_mide_contra_el_ultimo_intento_de_cualquier_portal(raiz, tmp_path):
+def test_la_pausa_entre_envios_se_mide_por_portal(raiz, tmp_path):
     configurar(raiz, 0)
     id_ = vacante(raiz, 1)
     crear(raiz, "Acme", "Cargo 1", "https://empleos.example.com/vacante/1")
     enviar(raiz, tmp_path, id_, PORTAL_ALTO)
     nueva = vacante(raiz, 2, empresa="Otra")
 
-    recien = evaluar(raiz, nueva, PORTAL_BAJO, JUICIOS)
-    despues = evaluar(raiz, nueva, PORTAL_BAJO, JUICIOS, ahora=_ahora() + timedelta(minutes=3))
+    mismo_portal = evaluar(raiz, nueva, PORTAL_ALTO, JUICIOS)
+    otro_portal = evaluar(raiz, nueva, PORTAL_BAJO, JUICIOS)
+    despues = evaluar(raiz, nueva, PORTAL_ALTO, JUICIOS, ahora=_ahora() + timedelta(minutes=3))
 
-    assert 0 < recien.espera_segundos <= 120
-    assert any(b.startswith("pausa entre envíos") for b in recien.bloqueos)
+    assert 0 < mismo_portal.espera_segundos <= 120
+    assert any(b.startswith("pausa entre envíos") for b in mismo_portal.bloqueos)
+    assert otro_portal.espera_segundos == 0 and otro_portal.bloqueos == []
     assert despues.espera_segundos == 0 and despues.bloqueos == []
 
 

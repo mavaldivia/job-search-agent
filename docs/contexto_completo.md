@@ -271,6 +271,7 @@ Criterios de aceptación: configurable desde el onboarding y desde "Actualizar c
 
 - `(*)`: cada `X` días preguntar si se quiere actualizar experiencia, CV base y configuración. Aceptar o "ahora no". Se recomienda **preguntar, no modificar** por cuenta propia.
 - **D15 (2026-11-15)**: un `X` por caso, medido desde la última vez que se realizó la operación: experiencia 15 días, CV base 30, configuración 60. Se revisa al abrir el menú, con una pregunta por caso vencido y como máximo una vez cada 24 h por caso. "Ahora no" no reinicia el reloj: el caso sigue vencido y vuelve en la próxima revisión (revisión del 2026-11-19: descartar y posponer son lo mismo). Nunca bloquea el menú ni modifica nada solo. Configurables por el usuario. Detalle en `decisiones.md`.
+- **B22 (2026-11-21)**: cuarto caso, `terminos`: los términos de búsqueda de vacantes se renuevan cada 15 días (`recordatorios_dias.terminos`) con la skill `investigar_terminos`; su reloj es la última renovación registrada y sin registro no se pregunta (lo parte la primera búsqueda con términos). Propone el agente y confirma el usuario.
 - `(**)`: las respuestas tipo son una base reutilizable; no reemplazan verificar que cada una aplica a la pregunta concreta.
 
 ---

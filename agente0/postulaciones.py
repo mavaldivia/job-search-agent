@@ -170,7 +170,8 @@ def listar(raiz: Path) -> list[Postulacion]:
     carpeta = raiz / "postulaciones"
     if not carpeta.is_dir():
         return []
-    return [cargar(raiz, d.name) for d in sorted(carpeta.iterdir()) if d.is_dir()]
+    # B25: con carriles en paralelo, otra postulación puede estar recién creada y sin su archivo todavía.
+    return [cargar(raiz, d.name) for d in sorted(carpeta.iterdir()) if (d / "postulacion.json").exists()]
 
 
 class IntentoDeEnvio(BaseModel):
@@ -279,6 +280,19 @@ def envio_fallido(raiz: Path, id_: str, detalle: str) -> Postulacion:
 def _eventos(raiz: Path, id_: str) -> list[Evento]:
     lineas = (_carpeta(raiz, id_) / "eventos.jsonl").read_text(encoding="utf-8").splitlines()
     return [Evento.model_validate_json(linea) for linea in lineas]
+
+
+def eventos_de(raiz: Path, id_: str) -> list[Evento]:
+    return _eventos(raiz, id_)
+
+
+def instantanea(raiz: Path, id_: str, intento: int | None = None) -> Envio:
+    """Lo congelado en un intento de envío (por defecto el último): nivel, aprobación, portal y respuestas literales."""
+    numero = intento or cargar(raiz, id_).intentos
+    archivo = _carpeta(raiz, id_) / "instantanea" / f"{numero:03d}" / "envio.json"
+    if not archivo.is_file():
+        raise PostulacionError(f"{id_}: no hay instantánea del intento {numero}.")
+    return Envio.model_validate_json(archivo.read_text(encoding="utf-8"))
 
 
 def recompensar(raiz: Path, id_: str, valor: float = PREMIO_PRIMER_CONTACTO) -> Evento:

@@ -115,3 +115,35 @@ def test_cli_rechaza_caso_desconocido_y_operacion_de_experiencia(raiz):
     asignada = _cli(raiz, "recordatorio", "operacion", "experiencia")
     assert asignada.returncode == 1
     assert "bitácora de revisiones" in asignada.stderr
+
+
+def test_terminos_no_se_preguntan_sin_una_renovacion_registrada(raiz):
+    assert fecha_ultima_operacion(raiz, "terminos") is None
+    assert "terminos" not in _casos(raiz, datetime(2027, 6, 1))
+
+
+def test_terminos_vencen_a_los_15_dias_desde_su_ultima_renovacion(raiz):
+    registrar_operacion(raiz, "terminos", date(2026, 11, 20))
+
+    antes = _casos(raiz, datetime(2026, 12, 4))
+    vencido = [p for p in pendientes(raiz, datetime(2026, 12, 5)) if p.caso == "terminos"]
+
+    assert "terminos" not in antes
+    assert [(p.dias_desde, p.ventana_dias) for p in vencido] == [(15, 15)]
+
+
+def test_renovar_los_terminos_reinicia_su_reloj_y_el_cli_lo_registra(raiz):
+    registrar_operacion(raiz, "terminos", date(2026, 10, 1))
+    assert "terminos" in _casos(raiz, HOY)
+
+    assert _cli(raiz, "recordatorio", "operacion", "terminos").returncode == 0
+
+    assert "terminos" not in [p["caso"] for p in json.loads(_cli(raiz, "recordatorio", "pendientes").stdout)]
+
+
+def test_el_cli_dice_la_fecha_de_la_ultima_operacion_o_que_no_hay_registro(raiz):
+    assert _cli(raiz, "recordatorio", "ultima", "terminos").stdout.strip() == "sin_registro"
+
+    registrar_operacion(raiz, "terminos", date(2026, 11, 20))
+
+    assert _cli(raiz, "recordatorio", "ultima", "terminos").stdout.strip() == "2026-11-20"

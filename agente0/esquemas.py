@@ -20,6 +20,8 @@ class RecordatoriosDias(BaseModel):
     experiencia: int = Field(default=15, gt=0)
     cv_base: int = Field(default=30, gt=0)
     configuracion: int = Field(default=60, gt=0)
+    # B22: los nombres de los cargos cambian rápido en el mercado, así que los términos de búsqueda se renuevan antes.
+    terminos: int = Field(default=15, gt=0)
 
 
 class ConversionRenta(BaseModel):
@@ -83,6 +85,21 @@ class Busqueda(BaseModel):
             "medio": TopeCorrida(paginas=5, lecturas=25),
         }
     )
+
+
+class Medicion(BaseModel):
+    """D16 y D17: ventanas de medición y umbrales de la recomendación de respuestas; valores iniciales sin validar."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    ventana_semanas: int = Field(default=4, ge=4, le=6)
+    # Con menos contactos que esto en una ventana, el reporte dice «sin conclusión».
+    minimo_contactos: int = Field(default=5, gt=0)
+    # Un uso entra a la tasa de una respuesta cuando se resolvió o pasaron estos días desde el envío (D5).
+    dias_para_resolver: int = Field(default=30, gt=0)
+    # Tasa suavizada: la base del usuario pesa como estos usos virtuales; se recomienda desde estos usos comparables.
+    usos_virtuales: int = Field(default=5, gt=0)
+    usos_para_recomendar: int = Field(default=8, gt=0)
 
 
 class Criterio(BaseModel):
@@ -149,6 +166,8 @@ class Compuerta(BaseModel):
 
     limites_diarios: LimitesDiarios = Field(default_factory=LimitesDiarios)
     pausa_minutos: int = Field(default=2, ge=0)
+    # B25: portales que se trabajan a la vez (un subagente y una pestaña por portal); dentro de cada uno, en serie.
+    carriles_en_paralelo: int = Field(default=4, ge=1)
     # Nivel máximo según el riesgo del portal (U5) y por nombre de portal; este último manda sobre el primero.
     tope_por_riesgo: dict[Riesgo, int] = Field(default_factory=lambda: {"alto": 50})
     topes_por_portal: dict[str, int] = Field(default_factory=dict)
@@ -182,6 +201,7 @@ class Configuracion(BaseModel):
     conversion_renta: ConversionRenta = Field(default_factory=ConversionRenta)
     busqueda: Busqueda = Field(default_factory=Busqueda)
     mercado: Mercado = Field(default_factory=Mercado)
+    medicion: Medicion = Field(default_factory=Medicion)
 
     @field_validator("autonomia")
     @classmethod
