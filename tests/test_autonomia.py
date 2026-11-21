@@ -12,7 +12,7 @@ from agente0.autonomia import AutonomiaError, Juicios, SolicitudEnvio, evaluar, 
 from agente0.datos import ARCHIVO_CONFIGURACION, ENV_VAR, REPO, crear_estructura
 from agente0.esquemas import Configuracion
 from agente0.oportunidades import evaluar as evaluar_vacante
-from agente0.oportunidades import registrar
+from agente0.oportunidades import observar_renta, registrar
 from agente0.postulaciones import Envio, cargar, crear, intentar_envio
 from tests.test_oportunidades import criterios, filtros
 
@@ -164,6 +164,70 @@ def test_la_renta_publicada_bajo_el_minimo_manda_el_envio_a_la_cola(raiz):
 
     assert (estado(bajo, "renta_minima"), bajo.acciones["envio"]) == ("no_cumple", "aprobar")
     assert (estado(sin_dato, "renta_minima"), sin_dato.acciones["envio"]) == ("cumple", "automatico")
+
+
+@pytest.mark.parametrize(
+    "acepta, avisa, esperado",
+    [
+        (3_200, 3_400, "cumple"),
+        (3_000, 3_100, "cumple"),
+        (2_800, 2_900, "no_cumple"),
+        (None, 2_900, "no_cumple"),
+        (None, 3_400, "no_cumple"),
+    ],
+)
+def test_el_tope_observado_en_el_formulario_decide_la_condicion_de_renta(raiz, acepta, avisa, esperado):
+    configurar(raiz, 75, renta_minima=3_000_000)
+    id_ = vacante(raiz)
+    observar_renta(
+        raiz,
+        id_,
+        unidad="USD bruto mensual",
+        minima_equivalente=3_000,
+        acepta_hasta=acepta,
+        avisa_desde=avisa,
+        evidencia="El portal avisó al declarar un monto mayor.",
+    )
+
+    decision = evaluar(raiz, id_, PORTAL_BAJO, JUICIOS)
+
+    assert (estado(decision, "renta_minima"), decision.acciones["envio"]) == (
+        esperado,
+        "automatico" if esperado == "cumple" else "aprobar",
+    )
+
+
+def test_el_tope_observado_prevalece_sobre_la_renta_publicada_y_usa_la_minima_configurada_sin_equivalente(raiz):
+    configurar(raiz, 75, renta_minima=3_000_000)
+    id_ = vacante(raiz, renta_publicada=5_000_000)
+    observar_renta(
+        raiz, id_, unidad="CLP líquido mensual", acepta_hasta=2_500_000, avisa_desde=2_700_000, evidencia="Aviso."
+    )
+
+    decision = evaluar(raiz, id_, PORTAL_BAJO, JUICIOS)
+
+    assert (estado(decision, "renta_minima"), decision.acciones["envio"]) == ("no_cumple", "aprobar")
+
+
+def test_una_observacion_nueva_reemplaza_a_la_anterior_y_deja_el_evento(raiz):
+    id_ = vacante(raiz)
+    observar_renta(raiz, id_, unidad="USD bruto mensual", avisa_desde=3_400, evidencia="Primer aviso.")
+    o = observar_renta(
+        raiz, id_, unidad="USD bruto mensual", acepta_hasta=3_200, avisa_desde=3_400, evidencia="Acotado."
+    )
+
+    eventos = (raiz / "oportunidades" / id_ / "eventos.jsonl").read_text(encoding="utf-8").splitlines()
+
+    assert o.renta_observada.acepta_hasta == 3_200
+    assert [json.loads(e)["tipo"] for e in eventos].count("RENTA_OBSERVADA") == 2
+
+
+@pytest.mark.parametrize("datos", [{}, {"acepta_hasta": 3_500, "avisa_desde": 3_400}])
+def test_la_renta_observada_exige_un_tope_coherente(raiz, datos):
+    id_ = vacante(raiz)
+
+    with pytest.raises(ValidationError):
+        observar_renta(raiz, id_, unidad="USD bruto mensual", evidencia="Aviso.", **datos)
 
 
 def test_un_proceso_activo_en_la_misma_empresa_manda_el_envio_a_la_cola(raiz, tmp_path):

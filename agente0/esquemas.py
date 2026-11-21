@@ -32,6 +32,20 @@ class ConversionRenta(BaseModel):
     banda_monto_pct: float = Field(default=10, ge=0)
 
 
+class Mercado(BaseModel):
+    """B24: vigencia de la tabla de mercado y qué percentil se propone como renta según la modalidad."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    vigencia_dias: int = Field(default=30, gt=0)
+    percentil_base: Literal[50, 75, 90] = 75
+    percentil_presencial: Literal[50, 75, 90] = 90
+    # La unidad en que está expresada `priorizacion.renta_minima`; los rangos en otra unidad piden la mínima convertida.
+    unidad_renta_minima: str = Field(default="CLP líquido mensual", min_length=1)
+    # Techo de la renta que se propone, en la misma unidad que la mínima; sin valor, la propone el mercado sin límite.
+    renta_maxima: int | None = Field(default=None, gt=0)
+
+
 class TopeCorrida(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -150,6 +164,7 @@ class Configuracion(BaseModel):
     compuerta: Compuerta = Field(default_factory=Compuerta)
     conversion_renta: ConversionRenta = Field(default_factory=ConversionRenta)
     busqueda: Busqueda = Field(default_factory=Busqueda)
+    mercado: Mercado = Field(default_factory=Mercado)
 
     @field_validator("autonomia")
     @classmethod

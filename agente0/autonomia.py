@@ -271,6 +271,14 @@ def _sin_proceso_activo(o: Oportunidad, todas: list[postulaciones.Postulacion]) 
 def _renta(o: Oportunidad, prio: Priorizacion) -> tuple[str, str]:
     if prio.renta_minima is None:
         return "cumple", "sin renta mínima configurada"
+    if (obs := o.renta_observada) is not None:
+        minima = obs.minima_equivalente or prio.renta_minima
+        # Solo un valor visto sin aviso prueba que el portal acepta la mínima; el resto va a la cola.
+        ok = obs.acepta_hasta is not None and obs.acepta_hasta >= minima
+        return ("cumple" if ok else "no_cumple"), (
+            f"tope observado en el formulario: acepta hasta {obs.acepta_hasta}, avisa desde {obs.avisa_desde} "
+            f"({obs.unidad}); mínimo {minima}"
+        )
     if o.renta_publicada is None:
         return "cumple", "la publicación no trae renta"
     ok = o.renta_publicada >= prio.renta_minima

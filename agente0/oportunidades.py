@@ -12,7 +12,9 @@ from agente0.esquemas import FiltroExcluyente
 from agente0.ids import id_postulacion
 
 Estado = Literal["POTENCIAL", "EN_POSTULACION", "CERRADO", "DESCARTADO"]
-TipoEvento = Literal["REGISTRADA", "FUENTE_AGREGADA", "VIGENCIA_VERIFICADA", "EVALUADA", "CAMBIO_ESTADO"]
+TipoEvento = Literal[
+    "REGISTRADA", "FUENTE_AGREGADA", "VIGENCIA_VERIFICADA", "EVALUADA", "CAMBIO_ESTADO", "RENTA_OBSERVADA"
+]
 
 # D5 y D13: saltar una vacante la devuelve a POTENCIAL; DESCARTADO solo vuelve por rescate del usuario (D11).
 _TRANSICIONES: dict[str, set[str]] = {
@@ -43,6 +45,27 @@ class Vigencia(BaseModel):
     verificada_el: date
     fuente: str = Field(min_length=1)
     evidencia: str = Field(min_length=1)
+
+
+class RentaObservada(BaseModel):
+    """B19: tope de renta que el portal reveló en el formulario, acotado probando valores sin avanzar de paso."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    fecha: date
+    unidad: str = Field(min_length=1)
+    minima_equivalente: int | None = Field(default=None, gt=0)
+    acepta_hasta: int | None = Field(default=None, gt=0)
+    avisa_desde: int | None = Field(default=None, gt=0)
+    evidencia: str = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def _acotada(self) -> "RentaObservada":
+        if self.acepta_hasta is None and self.avisa_desde is None:
+            raise ValueError("la renta observada exige acepta_hasta, avisa_desde o ambos.")
+        if self.acepta_hasta is not None and self.avisa_desde is not None and self.acepta_hasta >= self.avisa_desde:
+            raise ValueError("acepta_hasta debe ser menor que avisa_desde.")
+        return self
 
 
 class PuntajeCriterio(BaseModel):
@@ -89,6 +112,7 @@ class Oportunidad(BaseModel):
     publicada: date | None = None
     cierra_el: date | None = None
     renta_publicada: int | None = Field(default=None, gt=0)
+    renta_observada: RentaObservada | None = None
     vigencia: Vigencia
     evaluacion: Evaluacion | None = None
 
@@ -266,6 +290,16 @@ def _validar_contra_configuracion(raiz: Path, id_: str, evaluacion: Evaluacion) 
             f"(faltan {sorted(faltan)}, sobran {sorted(sobran)}); "
             f"{sorted(FILTROS_DEL_CODIGO)} los decide el código."
         )
+
+
+def observar_renta(raiz: Path, id_: str, **datos) -> Oportunidad:
+    """B19: guarda el tope acotado en el formulario; una observación nueva reemplaza a la anterior (queda el evento)."""
+    actual = cargar(raiz, id_)
+    observada = RentaObservada.model_validate({"fecha": date.today(), **datos})
+    oportunidad = actual.model_copy(update={"renta_observada": observada})
+    detalle = f"acepta hasta {observada.acepta_hasta}, avisa desde {observada.avisa_desde} ({observada.unidad})"
+    _guardar(_carpeta(raiz, id_), oportunidad, Evento(tipo="RENTA_OBSERVADA", estado=actual.estado, detalle=detalle))
+    return oportunidad
 
 
 def cambiar_estado(raiz: Path, id_: str, nuevo: Estado, motivo: str = "") -> Oportunidad:

@@ -7,6 +7,7 @@ from agente0 import (
     busquedas,
     configuracion,
     fuentes,
+    mercado,
     oportunidades,
     postulaciones,
     ranking,
@@ -27,12 +28,13 @@ USO = (
     " | respuestas listar|pendientes | respuestas ver|versiones <categoria> [<variante>]"
     " | respuestas guardar|revisar (JSON por stdin)"
     " | oportunidad registrar (JSON por stdin) | oportunidad listar [ESTADO] | oportunidad ver <id>"
-    " | oportunidad evaluar|estado <id> (JSON por stdin)"
+    " | oportunidad evaluar|estado|renta <id> (JSON por stdin)"
     " | ranking generar|ultimo | fuentes listar | fuentes guardar|agregar (JSON por stdin)"
     " | busqueda resumen | busqueda vistas | busqueda consulta|vista|pendiente|cupo|conocida (JSON por stdin)"
     " | autonomia evaluar <id> (JSON por stdin: portal, juicios) | autonomia matriz [nivel] | autonomia aviso <nivel>"
     " | configuracion editar (JSON por stdin: cambios, confirmacion)"
     " | simulacion (JSON por stdin: cambios; no modifica la configuración)"
+    " | mercado listar | mercado guardar (JSON por stdin) | mercado evaluar <id> (JSON por stdin: rol, seniority, mercado, presencialidad, evidencia)"
     " | renta factor ver <pais> <liquido> | renta factor guardar (JSON por stdin: pais, factor)"
     " | renta convertir (JSON por stdin: liquido, pais, a_bruto, tasa)"
 )
@@ -62,6 +64,8 @@ def main(argv: list[str]) -> int:
         return _simulacion()
     if argv[:1] == ["renta"]:
         return _renta(argv[1:])
+    if argv[:1] == ["mercado"]:
+        return _mercado(argv[1:])
     if argv[:1] in (["ranking"], ["fuentes"]) and len(argv) == 2:
         return _ranking_o_fuentes(argv[0], argv[1])
     if len(argv) == 4 and argv[:2] == ["cv", "calibrar"] and argv[3].isdigit():
@@ -197,6 +201,8 @@ def _oportunidad(accion: str, resto: list[str]) -> int:
             resultado = oportunidades.registrar(raiz, **json.loads(sys.stdin.read()))
         elif accion == "evaluar" and len(resto) == 1:
             resultado = oportunidades.evaluar(raiz, resto[0], **json.loads(sys.stdin.read()))
+        elif accion == "renta" and len(resto) == 1:
+            resultado = oportunidades.observar_renta(raiz, resto[0], **json.loads(sys.stdin.read()))
         elif accion == "estado" and len(resto) == 1:
             resultado = oportunidades.cambiar_estado(raiz, resto[0], **json.loads(sys.stdin.read()))
         else:
@@ -310,6 +316,26 @@ def _renta(resto: list[str]) -> int:
             return 2
         _imprimir(resultado)
     except (DatosError, ValueError, TypeError, KeyError, OSError) as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 1
+    return 0
+
+
+def _mercado(resto: list[str]) -> int:
+    try:
+        raiz = datos_dir()
+        if resto == ["listar"]:
+            resultado = mercado.listar(raiz)
+        elif resto == ["guardar"]:
+            resultado = mercado.RangoMercado.model_validate(json.loads(sys.stdin.read()))
+            mercado.guardar(raiz, resultado)
+        elif len(resto) == 2 and resto[0] == "evaluar":
+            resultado = mercado.evaluar(raiz, resto[1], **json.loads(sys.stdin.read()))
+        else:
+            print(USO, file=sys.stderr)
+            return 2
+        _imprimir(resultado)
+    except (DatosError, ValueError, TypeError, OSError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 1
     return 0
