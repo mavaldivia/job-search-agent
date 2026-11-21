@@ -42,8 +42,25 @@ class Mercado(BaseModel):
     percentil_presencial: Literal[50, 75, 90] = 90
     # La unidad en que está expresada `priorizacion.renta_minima`; los rangos en otra unidad piden la mínima convertida.
     unidad_renta_minima: str = Field(default="CLP líquido mensual", min_length=1)
-    # Techo de la renta que se propone, en la misma unidad que la mínima; sin valor, la propone el mercado sin límite.
+    # Techo de la renta que se propone en los cargos exigentes (nivel Manager o superior con mucha presencialidad o
+    # lejos de casa), en la misma unidad que la mínima; sin valor, la propone el mercado sin límite.
     renta_maxima: int | None = Field(default=None, gt=0)
+    # Tope en el resto de los cargos; sin valor rige `renta_maxima`.
+    renta_tope_general: int | None = Field(default=None, gt=0)
+    # Lo que se propone en un cargo general cuando el mercado no publica rango (en los exigentes, `renta_maxima`).
+    renta_estandar: int | None = Field(default=None, gt=0)
+    # Con mucho fit la propuesta sube de su base al tope del cargo: nada bajo `fit_desde`, el tope desde `fit_pleno`.
+    fit_desde: float = Field(default=70, ge=0, le=100)
+    fit_pleno: float = Field(default=90, gt=0, le=100)
+
+    @model_validator(mode="after")
+    def _escalones_ordenados(self) -> "Mercado":
+        if self.fit_desde >= self.fit_pleno:
+            raise ValueError("`fit_desde` debe ser menor que `fit_pleno`.")
+        escalones = [v for v in (self.renta_estandar, self.renta_tope_general, self.renta_maxima) if v is not None]
+        if escalones != sorted(escalones):
+            raise ValueError("deben cumplir renta_estandar <= renta_tope_general <= renta_maxima.")
+        return self
 
 
 class TopeCorrida(BaseModel):

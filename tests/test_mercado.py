@@ -9,8 +9,10 @@ from pydantic import ValidationError
 
 from agente0.configuracion import editar
 from agente0.datos import ENV_VAR, REPO, crear_estructura
-from agente0.mercado import MercadoError, RangoMercado, buscar, evaluar, guardar, listar
-from agente0.oportunidades import cargar, observar_renta, registrar
+from agente0.esquemas import Configuracion
+from agente0.mercado import MercadoError, RangoMercado, SinRango, buscar, evaluar, guardar, listar
+from agente0.oportunidades import cargar, evaluar as evaluar_oportunidad, observar_renta, registrar
+from tests.test_oportunidades import criterios, filtros
 
 CHILE = "CLP líquido mensual"
 USD = "USD bruto mensual"
@@ -21,7 +23,7 @@ VIGENCIA = {"verificada_el": date.today().isoformat(), "fuente": "portal", "evid
 def rango(**cambios) -> RangoMercado:
     base = {
         "rol": "Data Lead",
-        "seniority": "Lead",
+        "seniority": "Manager",
         "mercado": "Chile",
         "unidad": CHILE,
         "p50": 3_200_000,
@@ -42,7 +44,7 @@ def vacante(raiz, n: int = 1, empresa: str = "Acme", **datos) -> str:
 def pedir(raiz, id_, presencialidad="hibrida", lejos_de_casa=False, **extra):
     datos = {
         "rol": "Data Lead",
-        "seniority": "Lead",
+        "seniority": "Manager",
         "mercado": "Chile",
         "presencialidad": presencialidad,
         "lejos_de_casa": lejos_de_casa,
@@ -65,10 +67,10 @@ def raiz(tmp_path):
     [
         ("remota", False, 3_600_000),
         ("hibrida", False, 3_600_000),
-        ("alta", False, 3_600_000),
-        ("alta", True, 4_200_000),
+        ("hibrida", True, 4_200_000),
+        ("alta", False, 4_200_000),
         ("total", False, 4_200_000),
-        ("total", True, 4_200_000),
+        ("remota", True, 4_200_000),
     ],
 )
 def test_el_percentil_propuesto_depende_de_la_modalidad(raiz, presencialidad, lejos, esperado):
@@ -202,7 +204,7 @@ def test_un_rango_vencido_o_ausente_se_niega_y_pide_investigar(raiz):
     guardar(raiz, rango(rol="Analytics Lead", investigado=date.today() - timedelta(days=40)))
 
     with pytest.raises(MercadoError, match="investígalo de nuevo"):
-        buscar(raiz, "Analytics Lead", "Lead", "Chile")
+        buscar(raiz, "Analytics Lead", "Manager", "Chile")
     with pytest.raises(MercadoError, match="no hay rango"):
         buscar(raiz, "Otro Rol", "Lead", "Chile")
     assert {e.rango.rol: e.vigente for e in listar(raiz)} == {"Data Lead": True, "Analytics Lead": False}
@@ -237,7 +239,7 @@ def test_cli_evalua_la_renta_y_descarta_la_vacante_sin_cuadre(raiz):
     env = {k: v for k, v in os.environ.items() if k != ENV_VAR} | {ENV_VAR: str(raiz)}
     entrada = {
         "rol": "Data Lead",
-        "seniority": "Lead",
+        "seniority": "Manager",
         "mercado": "Chile",
         "presencialidad": "total",
         "evidencia": "Cargo 100 % presencial.",
@@ -256,3 +258,107 @@ def test_cli_evalua_la_renta_y_descarta_la_vacante_sin_cuadre(raiz):
     assert resultado.returncode == 0, resultado.stderr
     assert json.loads(resultado.stdout)["descartada"] is True
     assert cargar(raiz, id_).estado == "DESCARTADO"
+
+
+ESCALONES = {"renta_estandar": 3_900_000, "renta_tope_general": 4_100_000, "renta_maxima": 4_500_000}
+
+
+def con_fit(raiz, fit: int) -> str:
+    id_ = vacante(raiz)
+    evaluar_oportunidad(raiz, id_, "Publicación", criterios(fit, 60), filtros(), "Brecha de la vacante")
+    return id_
+
+
+def test_el_escalon_exigente_exige_nivel_manager_o_superior_y_presencialidad_alta_o_lejania(raiz):
+    editar(raiz, {"mercado": ESCALONES})
+    guardar(raiz, rango(seniority="Lead", p75=5_000_000, p90=6_000_000))
+
+    cerca = pedir(raiz, vacante(raiz, 1), "hibrida")
+    presencial = pedir(raiz, vacante(raiz, 2), "total")
+    lejos = pedir(raiz, vacante(raiz, 3), "hibrida", True)
+    lead_presencial = pedir(raiz, vacante(raiz, 4), "total", seniority="Lead")
+
+    assert [(r.propuesta.escalon, r.propuesta.maxima) for r in (cerca, presencial, lejos, lead_presencial)] == [
+        ("general", 4_100_000),
+        ("exigente", 4_500_000),
+        ("exigente", 4_500_000),
+        ("general", 4_100_000),
+    ]
+    assert (cerca.propuesta.monto, presencial.propuesta.monto) == (3_600_000, 4_200_000)
+    assert lead_presencial.propuesta.monto == 4_100_000
+
+
+def test_sin_rango_de_mercado_se_propone_la_renta_estandar_o_el_techo_si_el_cargo_es_exigente(raiz):
+    editar(raiz, {"mercado": ESCALONES})
+
+    general = pedir(raiz, vacante(raiz, 1), "hibrida", rol="Sin Rol")
+    exigente = pedir(raiz, vacante(raiz, 2), "total", rol="Sin Rol")
+
+    assert (general.propuesta.origen, general.propuesta.monto) == ("estandar", 3_900_000)
+    assert (exigente.propuesta.origen, exigente.propuesta.monto) == ("estandar", 4_500_000)
+    assert (general.propuesta.percentil, general.propuesta.confianza, general.propuesta.fuentes) == (None, None, [])
+    assert "sin rango de mercado" in general.propuesta.nota
+
+
+def test_sin_rango_ni_renta_estandar_o_fuera_de_chile_se_niega_y_pide_investigar(raiz):
+    with pytest.raises(SinRango):
+        pedir(raiz, vacante(raiz, 1), "hibrida", rol="Sin Rol")
+    editar(raiz, {"mercado": ESCALONES})
+    with pytest.raises(SinRango):
+        pedir(raiz, vacante(raiz, 2), "hibrida", rol="Sin Rol", mercado="Remoto internacional")
+
+
+def test_la_renta_estandar_no_baja_de_la_minima(raiz):
+    editar(raiz, {"priorizacion": {"renta_minima": 3_950_000}, "mercado": ESCALONES | {"renta_estandar": 3_900_000}})
+
+    resultado = pedir(raiz, vacante(raiz), "hibrida", rol="Sin Rol")
+
+    assert (resultado.propuesta.monto, resultado.propuesta.subida_a_minima) == (3_950_000, True)
+
+
+def test_los_escalones_deben_estar_ordenados():
+    with pytest.raises(ValidationError, match="renta_estandar <= renta_tope_general <= renta_maxima"):
+        Configuracion.model_validate({"mercado": ESCALONES | {"renta_estandar": 4_300_000}})
+
+
+@pytest.mark.parametrize(
+    "fit, esperado", [(60, 3_900_000), (70, 3_900_000), (80, 4_000_000), (90, 4_100_000), (100, 4_100_000)]
+)
+def test_con_mucho_fit_la_propuesta_sube_de_su_base_hacia_el_tope_del_cargo(raiz, fit, esperado):
+    editar(raiz, {"mercado": ESCALONES})
+
+    resultado = pedir(raiz, con_fit(raiz, fit), "hibrida", rol="Sin Rol")
+
+    assert resultado.propuesta.monto == esperado
+    assert resultado.propuesta.subida_por_fit == esperado - 3_900_000
+    assert resultado.propuesta.fit == fit
+
+
+def test_la_subida_por_fit_nunca_pasa_el_tope_ni_actua_si_la_base_ya_esta_en_el_tope(raiz):
+    editar(raiz, {"mercado": ESCALONES})
+
+    sobre_el_tope = pedir(raiz, con_fit(raiz, 100), "hibrida")
+    exigente_sin_rango = pedir(raiz, con_fit(raiz, 100), "total", rol="Sin Rol")
+
+    assert (sobre_el_tope.propuesta.monto, sobre_el_tope.propuesta.subida_por_fit) == (3_600_000 + 500_000, 500_000)
+    assert (exigente_sin_rango.propuesta.monto, exigente_sin_rango.propuesta.subida_por_fit) == (4_500_000, 0)
+
+
+def test_sin_evaluacion_no_hay_subida_por_fit(raiz):
+    editar(raiz, {"mercado": ESCALONES})
+
+    resultado = pedir(raiz, vacante(raiz), "hibrida", rol="Sin Rol")
+
+    assert (resultado.propuesta.fit, resultado.propuesta.subida_por_fit) == (None, 0)
+
+
+def test_un_rango_en_otra_unidad_exige_el_tope_general_convertido(raiz):
+    guardar(raiz, rango(mercado="Remoto internacional", unidad=USD, p50=3_000, p75=3_500, p90=4_000))
+    editar(raiz, {"mercado": ESCALONES})
+    datos = {"mercado": "Remoto internacional", "minima_equivalente": 2_800}
+
+    with pytest.raises(MercadoError, match="tope_general_equivalente"):
+        pedir(raiz, vacante(raiz, 1), "hibrida", **datos)
+    resultado = pedir(raiz, vacante(raiz, 2), "hibrida", tope_general_equivalente=3_200, **datos)
+
+    assert (resultado.propuesta.monto, resultado.propuesta.bajada_a_maxima) == (3_200, True)

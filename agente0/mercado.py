@@ -5,7 +5,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from agente0 import oportunidades
+from agente0 import oportunidades, ranking
 from agente0.datos import cargar_configuracion
 from agente0.ids import slug_empresa
 
@@ -14,6 +14,10 @@ Presencialidad = Literal["remota", "hibrida", "alta", "total"]
 
 
 class MercadoError(ValueError):
+    pass
+
+
+class SinRango(MercadoError):
     pass
 
 
@@ -78,20 +82,25 @@ class Solicitud(BaseModel):
     evidencia: str = Field(min_length=1)
     minima_equivalente: int | None = Field(default=None, gt=0)
     maxima_equivalente: int | None = Field(default=None, gt=0)
+    tope_general_equivalente: int | None = Field(default=None, gt=0)
     aplicar: bool = False
 
 
 class Propuesta(BaseModel):
-    percentil: int
-    valor_mercado: int
+    origen: Literal["mercado", "estandar"]
+    escalon: Literal["general", "exigente"]
+    percentil: int | None
+    valor_mercado: int | None
     minima: int | None
-    maxima: int | None = None
+    maxima: int | None = None  # el tope que rige en este cargo, no siempre `mercado.renta_maxima`
     monto: int
     subida_a_minima: bool
     bajada_a_maxima: bool = False
+    fit: float | None = None
+    subida_por_fit: int = 0
     unidad: str
-    investigado: date
-    confianza: str
+    investigado: date | None
+    confianza: str | None
     fuentes: list[str]
     nota: str | None = None
 
@@ -141,7 +150,7 @@ def buscar(
     base = (rol.casefold(), seniority.casefold(), mercado.casefold())
     candidatos = [e for e in listar(raiz, hoy) if e.rango.clave()[:3] == base]
     if not candidatos:
-        raise MercadoError(f"no hay rango de mercado para {rol} / {seniority} / {mercado}: investígalo y guárdalo.")
+        raise SinRango(f"no hay rango de mercado para {rol} / {seniority} / {mercado}: investígalo y guárdalo.")
     vigentes = [e.rango for e in candidatos if e.vigente]
     if not vigentes:
         dias = min(e.dias for e in candidatos)
@@ -156,6 +165,24 @@ def buscar(
 
 def exige_percentil_alto(presencialidad: Presencialidad, lejos_de_casa: bool) -> bool:
     return presencialidad == "total" or (presencialidad == "alta" and lejos_de_casa)
+
+
+NIVELES_EXIGENTES = ("manager", "head")
+
+
+def es_exigente(seniority: str, presencialidad: Presencialidad, lejos_de_casa: bool) -> bool:
+    """Los cargos de nivel Manager o superior con mucha presencialidad o lejos de casa se piden sobre el tope general."""
+    return seniority.casefold() in NIVELES_EXIGENTES and (presencialidad in ("alta", "total") or lejos_de_casa)
+
+
+def _subida_por_fit(base: int, tope: int | None, fit: float | None, desde: float, pleno: float) -> int:
+    """Cuánto sube la propuesta por fit: lineal de `desde` a `pleno`, hasta el tope; en tres cifras significativas."""
+    if fit is None or tope is None or base >= tope:
+        return 0
+    fraccion = min(max((fit - desde) / (pleno - desde), 0), 1)
+    sube = base + (tope - base) * fraccion
+    redondeado = int(round(sube, 3 - len(str(int(sube)))))
+    return max(min(redondeado, tope) - base, 0)
 
 
 def _cotas(o: oportunidades.Oportunidad, unidad: str, unidad_config: str) -> tuple[int | None, int | None]:
@@ -184,57 +211,89 @@ def _cuadre(piso: int | None, techo: int | None, referencia: int | None, que: st
     return Cuadre(resultado="sin_dato", referencia=referencia, detalle="la oferta no muestra un tope que decida")
 
 
-def evaluar(raiz: Path, id_: str, hoy: date | None = None, **datos) -> Evaluacion:
-    """B24: renta propuesta (percentil 75, o 90 si exige la modalidad) y si cuadra con el tope de la oferta.
+def _tope_del_cargo(solicitud: Solicitud, config, exigente: bool, unidad: str) -> int | None:
+    m, unidad_config = config.mercado, config.mercado.unidad_renta_minima
+    en_general = not exigente and m.renta_tope_general is not None
+    tope = m.renta_tope_general if en_general else m.renta_maxima
+    if tope is None or unidad == unidad_config:
+        return tope
+    nombre = "tope_general_equivalente" if en_general else "maxima_equivalente"
+    equivalente = getattr(solicitud, nombre)
+    if equivalente is None:
+        raise MercadoError(f"el rango está en {unidad}: falta `{nombre}`, el tope de renta de este cargo en esa unidad.")
+    return equivalente
 
-    No cuadrar es omitir la vacante: en cargos 100 % presenciales o lejos de casa, cuando el tope queda bajo la renta
-    propuesta; en el resto, cuando queda bajo la renta mínima. Con `aplicar` la vacante pasa a DESCARTADO con el motivo.
+
+def evaluar(raiz: Path, id_: str, hoy: date | None = None, **datos) -> Evaluacion:
+    """B24: renta propuesta según el escalón del cargo, el mercado y el fit, y si cuadra con el tope de la oferta.
+
+    General: percentil 75 con el tope general (sin rango de mercado, la renta estándar). Exigente (Manager o superior
+    con mucha presencialidad o lejos de casa): percentil 90 con `renta_maxima` (sin rango, `renta_maxima`). Con mucho fit
+    sube de su base hacia el tope. No cuadrar es omitir la vacante: en cargos 100 % presenciales o lejos de casa,
+    cuando el tope de la oferta queda bajo la renta propuesta; en el resto, cuando queda bajo la renta mínima. Con
+    `aplicar` la vacante pasa a DESCARTADO con el motivo.
     """
     solicitud = Solicitud.model_validate(datos)
     config = cargar_configuracion(raiz)
     o = oportunidades.cargar(raiz, id_)
-    rango = buscar(raiz, solicitud.rol, solicitud.seniority, solicitud.mercado, o.empresa, hoy)
-
+    exigente = es_exigente(solicitud.seniority, solicitud.presencialidad, solicitud.lejos_de_casa)
     unidad_config = config.mercado.unidad_renta_minima
-    if rango.unidad == unidad_config:
+    try:
+        rango = buscar(raiz, solicitud.rol, solicitud.seniority, solicitud.mercado, o.empresa, hoy)
+    except SinRango:
+        estandar = config.mercado.renta_maxima if exigente else config.mercado.renta_estandar
+        if solicitud.mercado.casefold() != "chile" or estandar is None:
+            raise
+        rango = None
+
+    unidad = rango.unidad if rango else unidad_config
+    if unidad == unidad_config:
         minima = config.priorizacion.renta_minima
     elif solicitud.minima_equivalente is not None:
         minima = solicitud.minima_equivalente
     else:
-        raise MercadoError(f"el rango está en {rango.unidad}: falta `minima_equivalente`, la renta mínima en esa unidad.")
+        raise MercadoError(f"el rango está en {unidad}: falta `minima_equivalente`, la renta mínima en esa unidad.")
 
-    maxima = config.mercado.renta_maxima
-    if maxima is not None and rango.unidad != unidad_config:
-        if solicitud.maxima_equivalente is None:
-            raise MercadoError(f"el rango está en {rango.unidad}: falta `maxima_equivalente`, el techo de renta en esa unidad.")
-        maxima = solicitud.maxima_equivalente
+    maxima = _tope_del_cargo(solicitud, config, exigente, unidad)
     if maxima is not None and minima is not None and maxima < minima:
         raise MercadoError(f"el techo de renta ({maxima}) queda bajo la renta mínima ({minima}).")
 
-    alto = exige_percentil_alto(solicitud.presencialidad, solicitud.lejos_de_casa)
-    percentil = config.mercado.percentil_presencial if alto else config.mercado.percentil_base
-    valor, nota = getattr(rango, f"p{percentil}"), None
-    if valor is None:
-        nota = f"el rango no publica el percentil {percentil}: se usa el 75"
-        percentil, valor = 75, rango.p75
-    tras_techo = min(valor, maxima) if maxima is not None else valor
-    monto = max(tras_techo, minima or 0)
+    percentil = valor = None
+    nota = "sin rango de mercado: se propone la renta estándar del usuario" if rango is None else None
+    if rango is None:
+        base = estandar
+    else:
+        percentil = config.mercado.percentil_presencial if exigente else config.mercado.percentil_base
+        valor = getattr(rango, f"p{percentil}")
+        if valor is None:
+            nota = f"el rango no publica el percentil {percentil}: se usa el 75"
+            percentil, valor = 75, rango.p75
+        base = valor
+    tras_tope = min(base, maxima) if maxima is not None else base
+    fit = ranking.puntuar(o, config.priorizacion)[1] if o.evaluacion else None
+    sube = _subida_por_fit(tras_tope, maxima, fit, config.mercado.fit_desde, config.mercado.fit_pleno)
+    monto = max(tras_tope + sube, minima or 0)
     propuesta = Propuesta(
+        origen="mercado" if rango else "estandar",
+        escalon="exigente" if exigente else "general",
         percentil=percentil,
         valor_mercado=valor,
         minima=minima,
         maxima=maxima,
         monto=monto,
-        subida_a_minima=monto > tras_techo,
-        bajada_a_maxima=tras_techo < valor,
-        unidad=rango.unidad,
-        investigado=rango.investigado,
-        confianza=rango.confianza,
-        fuentes=[f.url for f in rango.fuentes],
+        subida_a_minima=monto > tras_tope + sube,
+        bajada_a_maxima=tras_tope < base,
+        fit=fit,
+        subida_por_fit=sube,
+        unidad=unidad,
+        investigado=rango.investigado if rango else None,
+        confianza=rango.confianza if rango else None,
+        fuentes=[f.url for f in rango.fuentes] if rango else [],
         nota=nota,
     )
 
-    piso, techo = _cotas(o, rango.unidad, unidad_config)
+    piso, techo = _cotas(o, unidad, unidad_config)
+    alto = exige_percentil_alto(solicitud.presencialidad, solicitud.lejos_de_casa)
     cuadre = (
         _cuadre(piso, techo, monto, "la renta propuesta")
         if alto
@@ -244,7 +303,7 @@ def evaluar(raiz: Path, id_: str, hoy: date | None = None, **datos) -> Evaluacio
 
     descartada = False
     if cuadre.resultado == "omitir" and solicitud.aplicar and o.estado in ("POTENCIAL", "EN_POSTULACION"):
-        motivo = f"sin cuadre de renta ({rango.unidad}): {cuadre.detalle}"
+        motivo = f"sin cuadre de renta ({unidad}): {cuadre.detalle}"
         oportunidades.cambiar_estado(raiz, id_, "DESCARTADO", motivo)
         descartada = True
     return Evaluacion(propuesta=propuesta, cuadre=cuadre, sugerida=sugerida, descartada=descartada)
