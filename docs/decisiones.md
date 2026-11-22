@@ -69,6 +69,7 @@ Formato: qué se eligió, qué se descartó, por qué. No volver a proponer lo d
 - **Por qué**: el usuario 1 quiere llegar lo antes posible a un buen trabajo, con buena renta y buen fit; el trabajo largo de lectura y de redacción es independiente entre portales y entre vacantes.
 - **Consecuencias**: D1 se mantiene (a demanda, sin ejecución programada): los subagentes los lanza el agente principal durante una operación. Hasta cerrar B25, los envíos siguen en serie con la pausa y los límites de B11.
 - **Condición para reabrir**: que los envíos en paralelo superen los límites por portal de D4.
+- **Cierre (2026-11-22)**: B25 se cierra con la decisión provisoria; la prueba del carril de BNE (sin sesión del usuario 1 en el portal) pasa a B28 por su pedido. Del uso real quedan en `postular`: el agente no escribe el RUT ni otros documentos de identidad aunque el usuario lo pida y esté en la biblioteca (lo escribe el usuario en el campo y la instantánea lo omite); lo que el usuario responde para un formulario se guarda en `perfil.md`; un formulario a medias en una pestaña de otra sesión de Chrome se rehace en una pestaña nueva. Descartado: que el agente escriba el RUT guardado en la biblioteca.
 
 ---
 
