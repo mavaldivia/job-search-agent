@@ -11,7 +11,7 @@ from agente0.carriles import CarrilesError, planear, portal_de
 from agente0.datos import ARCHIVO_CONFIGURACION, ENV_VAR, REPO, crear_estructura
 from agente0.esquemas import Configuracion
 from agente0.oportunidades import cargar as cargar_oportunidad
-from agente0.oportunidades import evaluar, registrar
+from agente0.oportunidades import cambiar_estado, evaluar, registrar
 from agente0.postulaciones import Envio, Evidencia, confirmar_envio, crear, envio_fallido, intentar_envio
 from agente0.ranking import generar
 from tests.test_oportunidades import criterios, filtros
@@ -192,6 +192,16 @@ def test_las_preparadas_van_a_la_cola_y_las_ya_enviadas_quedan_fuera(raiz, tmp_p
 
     assert [v.id for v in c.en_cola] == [preparada]
     assert [v.id for v in c.vacantes] == [nueva]
+
+
+def test_una_preparada_cuya_oportunidad_se_descarto_sale_de_la_cola(raiz):
+    configurar(raiz, 50, {"pausa_minutos": 0})
+    id_ = vacante(raiz, 1, "https://portal-a.example.com/empleo/1")
+    crear(raiz, "Empresa 1", "Cargo 1", "https://portal-a.example.com/empleo/1")
+    cambiar_estado(raiz, id_, "DESCARTADO", "el usuario no quiere mudarse")
+    generar(raiz)
+
+    assert planear(raiz).carriles == []
 
 
 def test_un_envio_fallido_vuelve_a_la_cola_del_carril(raiz, tmp_path):

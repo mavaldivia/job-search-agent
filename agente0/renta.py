@@ -30,6 +30,7 @@ class Conversion(BaseModel):
     factor: float | None
     tasa: float | None
     monto: float
+    monto_exacto: float | None = None  # el bruto sin cerrar, solo cuando `monto` salió cerrado
 
 
 def _cargar(raiz: Path) -> dict[str, FactorBruto]:
@@ -71,6 +72,28 @@ def factor_vigente(raiz: Path, pais: str, liquido: float, hoy: date | None = Non
     return factor
 
 
+PASOS_CLP = (100_000, 50_000)
+# Tolerancia del bruto cerrado respecto del bruto exacto: con 100.000 de paso un bruto de unos 4 MM se mueve hasta 1,3 %.
+TOLERANCIA_BRUTO_CERRADO = 0.015
+
+
+def cerrar_monto(valor: float, piso: float | None = None, techo: float | None = None) -> int:
+    """Número cerrado en pesos: el múltiplo de 100.000 más cercano dentro de [piso, techo] y, si no cabe ninguno, de 50.000.
+
+    Si tampoco cabe un múltiplo de 50.000, vale el borde que corresponda (la mínima o el tope ya vienen redondos).
+    """
+    for paso in PASOS_CLP:
+        candidato = int(valor // paso + (valor % paso >= paso / 2)) * paso
+        if techo is not None and candidato > techo:
+            candidato = int(techo // paso) * paso
+        if piso is not None and candidato < piso:
+            candidato = -int(-piso // paso) * paso
+        if (piso is None or candidato >= piso) and (techo is None or candidato <= techo):
+            return candidato
+    acotado = min(max(valor, piso if piso is not None else valor), techo if techo is not None else valor)
+    return int(round(acotado))
+
+
 def convertir(
     raiz: Path,
     liquido: float,
@@ -82,7 +105,8 @@ def convertir(
 ) -> Conversion:
     """Dos pasos independientes sobre un líquido en moneda local: pasar a bruto (factor guardado) y/o a otra moneda.
 
-    `tasa` son unidades de moneda local por una de la moneda de destino (por ejemplo, pesos por dólar).
+    `tasa` son unidades de moneda local por una de la moneda de destino (por ejemplo, pesos por dólar). El bruto de Chile
+    en pesos sale cerrado (`cerrar_monto`) dentro de una tolerancia del bruto exacto; el resto, con dos decimales.
     """
     if liquido <= 0 or (tasa is not None and tasa <= 0):
         raise ValueError("el líquido y la tasa deben ser positivos.")
@@ -97,6 +121,11 @@ def convertir(
         monto *= factor
     if tasa is not None:
         monto /= tasa
+    elif a_bruto and pais is not None and _pais(pais) == "CL":
+        cerrado = cerrar_monto(monto, monto * (1 - TOLERANCIA_BRUTO_CERRADO), monto * (1 + TOLERANCIA_BRUTO_CERRADO))
+        return Conversion(
+            liquido=liquido, factor=factor, tasa=tasa, monto=float(cerrado), monto_exacto=round(monto, 2)
+        )
     return Conversion(liquido=liquido, factor=factor, tasa=tasa, monto=round(monto, 2))
 
 

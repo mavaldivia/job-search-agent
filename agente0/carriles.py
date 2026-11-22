@@ -126,6 +126,8 @@ def planear(raiz: Path, ahora: datetime | None = None) -> PlanCarriles:
     for previa in previas.values():
         if previa.estado == "PREPARADA":
             o = oportunidades.cargar(raiz, previa.id)
+            if o.estado in ("CERRADO", "DESCARTADO"):
+                continue
             ubicar(
                 o,
                 VacanteCarril(id=o.id, empresa=o.empresa, cargo=o.cargo, url=o.url),

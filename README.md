@@ -59,9 +59,9 @@ python -m agente0 respuestas listar   # respuestas tipo vigentes; también pendi
 python -m agente0 configuracion ver   # configuración vigente, con los valores iniciales de priorización; también editar (cambio parcial validado)
 python -m agente0 autonomia matriz 75  # qué se hace solo y qué se aprueba en un nivel; también evaluar <id> | aviso 100
 python -m agente0 simulacion < cambios.json   # qué vacantes cambiarían con una configuración hipotética ({"cambios": {...}}); no modifica nada
-python -m agente0 renta convertir < pedido.json   # pasa un líquido a bruto (factor guardado por país) y/o a otra moneda (tasa); también factor ver | guardar
+python -m agente0 renta convertir < pedido.json   # pasa un líquido a bruto (factor guardado por país; el bruto de Chile sale en número cerrado, con `monto_exacto` a la vista) y/o a otra moneda (tasa); también factor ver | guardar
 python -m agente0 oportunidad listar  # vacantes potenciales; también registrar | ver | evaluar | estado | renta (tope observado en el formulario)
-python -m agente0 mercado listar       # rangos de sueldo por rol y seniority con su vigencia; también guardar | evaluar <id> (renta propuesta y cuadre)
+python -m agente0 mercado listar       # rangos de sueldo por rol y seniority con su vigencia; también guardar | evaluar <id> (renta propuesta en número cerrado y cuadre)
 python -m agente0 ranking generar     # arma el Top con la lista anterior como base; también ultimo
 python -m agente0 fuentes listar      # fuentes de búsqueda del usuario; también guardar | agregar
 python -m agente0 busqueda resumen    # última búsqueda por fuente; también consulta | vista | vistas | pendiente | cupo | conocida

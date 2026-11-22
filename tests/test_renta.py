@@ -8,7 +8,7 @@ import pytest
 
 from agente0.configuracion import editar
 from agente0.datos import ENV_VAR, REPO, crear_estructura
-from agente0.renta import FactorBruto, FactorNoVigente, convertir, factor_vigente, guardar_factor
+from agente0.renta import FactorBruto, FactorNoVigente, cerrar_monto, convertir, factor_vigente, guardar_factor
 
 HOY = date(2026, 11, 20)
 FACTOR = FactorBruto(
@@ -46,7 +46,8 @@ def test_sin_factor_guardado_pide_investigarlo(raiz):
 def test_factor_guardado_se_reutiliza_dentro_de_la_vigencia(raiz):
     guardar_factor(raiz, "cl", FACTOR)
     assert factor_vigente(raiz, "CL", 3_000_000, HOY) == FACTOR
-    assert convertir(raiz, 3_000_000, pais="CL", a_bruto=True, hoy=HOY).monto == 3_750_000
+    bruto = convertir(raiz, 3_000_000, pais="CL", a_bruto=True, hoy=HOY)
+    assert (bruto.monto, bruto.monto_exacto) == (3_800_000, 3_750_000)
 
 
 def test_factor_vence_a_los_30_dias_por_defecto(raiz):
@@ -147,3 +148,17 @@ def test_cli_factor_vencido_sale_con_error_y_sin_tocar_nada(raiz):
     )
     assert resultado.returncode == 1 and "investígalo de nuevo" in resultado.stderr
     assert (raiz / "configuracion" / "renta_factores.json").read_bytes() == antes
+
+
+@pytest.mark.parametrize(
+    "valor, piso, techo, esperado",
+    [
+        (3_990_000, None, None, 4_000_000),
+        (3_940_000, None, None, 3_900_000),
+        (3_960_000, 3_950_000, 3_970_000, 3_950_000),
+        (4_120_000, None, 4_100_000, 4_100_000),
+        (3_960_000, 3_955_000, 3_965_000, 3_960_000),
+    ],
+)
+def test_cerrar_monto_prefiere_multiplos_de_100000_y_cae_a_50000_si_no_caben(valor, piso, techo, esperado):
+    assert cerrar_monto(valor, piso, techo) == esperado

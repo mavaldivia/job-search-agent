@@ -313,7 +313,30 @@ def test_la_renta_estandar_no_baja_de_la_minima(raiz):
 
     resultado = pedir(raiz, vacante(raiz), "hibrida", rol="Sin Rol")
 
-    assert (resultado.propuesta.monto, resultado.propuesta.subida_a_minima) == (3_950_000, True)
+    # 3.950.000 es múltiplo de 50.000, pero el de 100.000 sobre la mínima es el que se prefiere.
+    assert (resultado.propuesta.monto, resultado.propuesta.subida_a_minima) == (4_000_000, True)
+
+
+def test_la_renta_propuesta_en_pesos_sale_en_numero_cerrado(raiz):
+    editar(raiz, {"mercado": ESCALONES | {"renta_estandar": 3_990_000}})
+
+    resultado = pedir(raiz, vacante(raiz), "hibrida", rol="Sin Rol")
+
+    assert resultado.propuesta.monto == resultado.sugerida == 4_000_000
+
+
+def test_el_numero_cerrado_no_pasa_del_tope_del_cargo_y_cae_a_50000_si_no_cabe_uno_de_100000(raiz):
+    editar(
+        raiz,
+        {
+            "priorizacion": {"renta_minima": 3_950_000},
+            "mercado": ESCALONES | {"renta_estandar": 3_960_000, "renta_tope_general": 3_990_000},
+        },
+    )
+
+    resultado = pedir(raiz, vacante(raiz), "hibrida", rol="Sin Rol")
+
+    assert resultado.propuesta.monto == 3_950_000
 
 
 def test_los_escalones_deben_estar_ordenados():

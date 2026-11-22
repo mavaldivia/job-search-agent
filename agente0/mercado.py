@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from agente0 import oportunidades, ranking
 from agente0.datos import cargar_configuracion
 from agente0.ids import slug_empresa
+from agente0.renta import cerrar_monto
 
 ARCHIVO_RANGOS = "configuracion/mercado_rangos.json"
 Presencialidad = Literal["remota", "hibrida", "alta", "total"]
@@ -273,6 +274,10 @@ def evaluar(raiz: Path, id_: str, hoy: date | None = None, **datos) -> Evaluacio
     fit = ranking.puntuar(o, config.priorizacion)[1] if o.evaluacion else None
     sube = _subida_por_fit(tras_tope, maxima, fit, config.mercado.fit_desde, config.mercado.fit_pleno)
     monto = max(tras_tope + sube, minima or 0)
+    subida_a_minima = monto > tras_tope + sube
+    en_pesos = unidad.startswith("CLP")
+    if en_pesos:
+        monto = cerrar_monto(monto, minima, maxima)
     propuesta = Propuesta(
         origen="mercado" if rango else "estandar",
         escalon="exigente" if exigente else "general",
@@ -281,7 +286,7 @@ def evaluar(raiz: Path, id_: str, hoy: date | None = None, **datos) -> Evaluacio
         minima=minima,
         maxima=maxima,
         monto=monto,
-        subida_a_minima=monto > tras_tope + sube,
+        subida_a_minima=subida_a_minima,
         bajada_a_maxima=tras_tope < base,
         fit=fit,
         subida_por_fit=sube,
@@ -300,6 +305,8 @@ def evaluar(raiz: Path, id_: str, hoy: date | None = None, **datos) -> Evaluacio
         else _cuadre(piso, techo, minima, "la renta mínima")
     )
     sugerida = piso if cuadre.resultado == "cuadra" and piso is not None and piso < monto else monto
+    if en_pesos and sugerida != monto:
+        sugerida = cerrar_monto(sugerida, minima, sugerida)
 
     descartada = False
     if cuadre.resultado == "omitir" and solicitud.aplicar and o.estado in ("POTENCIAL", "EN_POSTULACION"):
