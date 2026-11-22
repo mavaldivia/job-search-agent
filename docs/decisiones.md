@@ -2,6 +2,13 @@
 
 Formato: qué se eligió, qué se descartó, por qué. No volver a proponer lo descartado sin un motivo nuevo.
 
+## 2026-11-22 — B26: el historial previo a Agente0 no se carga ni se construye nada para él
+
+- **Contexto**: la antiduplicación del código solo ve las postulaciones registradas. El material de partida (§9) lista 27 hechas a mano antes de Agente0, sin URL, y el 2026-11-21 cuatro vacantes ya postuladas figuraban como pendientes y solo los subagentes las detectaron al leer LinkedIn («Solicitud enviada»).
+- **Elegido**: no se hace nada para el historial previo a Agente0 (decisión del usuario 1: por ahora no le importa a qué postuló antes; si recibe un contacto de un proceso anterior, lo avisa). Ratifica B4. Sin código nuevo; sale de la skill `postular` la instrucción de revisar el material de partida por postulaciones previas a la misma empresa.
+- **Descartado**: (1) lista de consulta aparte (`origen/postulaciones_previas.csv`) leída por `busqueda conocida`, `carriles` y la compuerta, con cruce por empresa y cargo normalizados. (2) Importarlas como `POSTULADO` sin instantánea: el ID de postulación depende de la URL, que el historial no trae, así que igual habría que cruzar por empresa y cargo, y sumaría 27 envíos sin respuestas asociadas al resumen semanal (B12) y a la medición (B13).
+- **Consecuencias**: B6 y B18 pueden volver a proponer una vacante a la que el usuario postuló antes de Agente0 y la compuerta de `/postular` no la detecta, también a 75 % o más: riesgo de reenvío aceptado por el usuario. Un contacto por una postulación previa no tiene postulación registrada ni respuestas enviadas a las que asociarlo, así que no entra a la recompensa de D16; se atiende cuando ocurra. Se reabre si el usuario cambia de parecer o ocurre un reenvío real. La decisión no cubre lo que el usuario postule a mano durante la operación de Agente0.
+
 ## 2026-11-22 — B27: planilla de postulaciones con status de validación
 
 - **Contexto**: el usuario 1 pidió un `postulaciones.csv` con rol, empresa, portal, sueldo solicitado en CLP líquidos y status de lo que el agente postuló, todo en «Postulado sin validar»: él valida cuáles contra el correo del portal (confirmación, datos por completar, pruebas) y la skill `postular` debe agregar cada postulación nueva con ese status.
