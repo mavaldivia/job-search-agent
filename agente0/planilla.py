@@ -11,12 +11,16 @@ from agente0.ranking import puntuar
 
 ARCHIVO = "postulaciones.csv"
 STATUS_POR_DEFECTO = "Postulado sin validar"
-# `status` y `notas` son del usuario: validar contra el correo del portal, anotar pruebas o datos pedidos.
+# `status` y `notas` son del usuario: validar contra el correo del portal, anotar datos pedidos.
+# `accionables` lo escribe el agente (`poner_accionables`): lo que viene después, por ejemplo una prueba
+# por completar, con su enlace.
 COLUMNAS = (
     "id",
     "fecha_postulacion",
     "rol",
     "empresa",
+    "status",
+    "accionables",
     "portal",
     "renta_clp_liquida",
     "renta_declarada",
@@ -26,7 +30,6 @@ COLUMNAS = (
     "brecha_principal",
     "autonomia",
     "url",
-    "status",
     "notas",
 )
 
@@ -57,6 +60,7 @@ def _fila(
         "autonomia": (envio.nivel_efectivo if envio.nivel_efectivo is not None else envio.autonomia),
         "url": postulacion.url,
         "status": STATUS_POR_DEFECTO,
+        "accionables": "",
         "notas": "",
     }
     if oportunidad is not None:
@@ -79,36 +83,64 @@ def _fila(
     return fila
 
 
-def sincronizar(raiz: Path) -> list[str]:
-    """Agrega a `postulaciones.csv` cada postulación confirmada que aún no está, con el status por defecto.
+def _leer(archivo: Path) -> tuple[list[str], list[dict[str, str]]]:
+    with archivo.open(encoding="utf-8-sig", newline="") as f:
+        lector = csv.DictReader(f)
+        return list(lector.fieldnames or []), list(lector)
 
-    Solo agrega: las filas existentes no se tocan, así que el status y las notas del usuario sobrevuelven a
-    cualquier sincronización. Es idempotente, por lo que dos carriles que lo corran a la vez no pierden filas
-    de forma permanente (la siguiente corrida repone la que quedó fuera). Devuelve los ID agregados.
-    """
-    archivo = raiz / ARCHIVO
-    filas: list[dict[str, str]] = []
-    campos = list(COLUMNAS)
-    if archivo.exists():
-        with archivo.open(encoding="utf-8-sig", newline="") as f:
-            lector = csv.DictReader(f)
-            campos = list(lector.fieldnames or COLUMNAS)
-            filas = list(lector)
-    existentes = {f["id"] for f in filas}
-    priorizacion = cargar_configuracion(raiz).priorizacion
-    nuevas = [
-        _fila(raiz, p, priorizacion)
-        for p in postulaciones.listar(raiz)
-        if p.fecha_postulacion is not None and p.id not in existentes
-    ]
-    if not nuevas:
-        return []
-    nuevas.sort(key=lambda f: (f["fecha_postulacion"], f["id"]))
+
+def _ordenar(existentes: list[str]) -> list[str]:
+    # Las columnas conocidas van en el orden de `COLUMNAS`; las que el usuario agregó quedan al final.
+    return [*COLUMNAS, *(c for c in existentes if c not in COLUMNAS)]
+
+
+def _escribir(archivo: Path, campos: list[str], filas: list[dict[str, str]]) -> None:
     temporal = archivo.with_suffix(".csv.tmp")
     # utf-8-sig: Excel y Numbers reconocen así las tildes.
     with temporal.open("w", encoding="utf-8-sig", newline="") as f:
         escritor = csv.DictWriter(f, fieldnames=campos, extrasaction="ignore", restval="")
         escritor.writeheader()
-        escritor.writerows(filas + nuevas)
+        escritor.writerows(filas)
     os.replace(temporal, archivo)
+
+
+def sincronizar(raiz: Path) -> list[str]:
+    """Agrega a `postulaciones.csv` cada postulación confirmada que aún no está, con el status por defecto.
+
+    Solo agrega: las filas existentes no se tocan, así que el status, los accionables y las notas sobrevuelven
+    a cualquier sincronización. Si el archivo viene con otro orden de columnas o le faltan columnas nuevas, lo
+    reordena y completa sin perder datos ni columnas del usuario. Es idempotente, por lo que dos carriles que lo
+    corran a la vez no pierden filas de forma permanente (la siguiente corrida repone la que quedó fuera).
+    Devuelve los ID agregados.
+    """
+    archivo = raiz / ARCHIVO
+    existentes: list[str] = []
+    filas: list[dict[str, str]] = []
+    if archivo.exists():
+        existentes, filas = _leer(archivo)
+    campos = _ordenar(existentes)
+    ya_estan = {f["id"] for f in filas}
+    priorizacion = cargar_configuracion(raiz).priorizacion
+    nuevas = [
+        _fila(raiz, p, priorizacion)
+        for p in postulaciones.listar(raiz)
+        if p.fecha_postulacion is not None and p.id not in ya_estan
+    ]
+    if not nuevas and (not archivo.exists() or existentes == campos):
+        return []
+    nuevas.sort(key=lambda f: (f["fecha_postulacion"], f["id"]))
+    _escribir(archivo, campos, filas + nuevas)
     return [str(f["id"]) for f in nuevas]
+
+
+def poner_accionables(raiz: Path, id_: str, texto: str) -> None:
+    """Escribe la columna `accionables` de una postulación (texto vacío la limpia) sin tocar el resto."""
+    archivo = raiz / ARCHIVO
+    if not archivo.exists():
+        raise ValueError(f"no existe {ARCHIVO}: corre `planilla sync` antes")
+    existentes, filas = _leer(archivo)
+    fila = next((f for f in filas if f["id"] == id_), None)
+    if fila is None:
+        raise ValueError(f"la postulación {id_} no está en {ARCHIVO}")
+    fila["accionables"] = texto.strip()
+    _escribir(archivo, _ordenar(existentes), filas)

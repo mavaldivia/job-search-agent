@@ -31,6 +31,7 @@ Navegador (D4): la extensión de Chrome sobre el Chrome real y la sesión del us
 
 - Ningún dato personal va en este archivo, en reglas, prompts ni código. Todo dato de un usuario vive en su perfil, y los perfiles no se mezclan.
 - El primer usuario es el dueño del proyecto. Sus cifras, su historial y sus preferencias son de su perfil, no del agente.
+- Este repo es público: los ejemplos de skills, docs, pruebas y mensajes de commit llevan valores inventados (fechas, montos, nombres, empresas), nunca los reales que se vieron en una sesión. La guardia `python -m agente0 privacidad` compara lo versionado con los datos privados del usuario (perfil, respuestas, planilla y la lista `$AGENTE0_DATOS/privacidad.txt` para lo que no esté ahí, como el empleador) y sale con error si encuentra algo; un hook de `.claude/settings.json` la corre antes de cada `git commit` y `git push` y los bloquea. Los hallazgos dicen archivo, línea y tipo, no el valor.
 - No sacar aprendizajes ni respuestas de un usuario para otro salvo por el opt-in de D18: apagado por defecto y solo conteos agregados y anonimizados por categoría de respuesta y familia de cargo, nunca texto literal ni datos del usuario. El mecanismo no está construido; mientras tanto cada perfil aprende solo con lo suyo.
 
 ## Flujo

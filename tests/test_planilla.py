@@ -9,7 +9,7 @@ import pytest
 
 from agente0.datos import ENV_VAR, REPO, crear_estructura
 from agente0.oportunidades import evaluar, registrar
-from agente0.planilla import ARCHIVO, COLUMNAS, STATUS_POR_DEFECTO, sincronizar
+from agente0.planilla import ARCHIVO, COLUMNAS, STATUS_POR_DEFECTO, poner_accionables, sincronizar
 from agente0.postulaciones import Envio, Evidencia, confirmar_envio, crear, intentar_envio
 from tests.test_oportunidades import VIGENCIA, criterios, filtros
 
@@ -54,8 +54,8 @@ def test_agrega_las_confirmadas_con_el_status_por_defecto_y_sus_datos(raiz, tmp_
         raiz,
         tmp_path,
         1,
-        renta_declarada="CLP 3.900.000 líquidos",
-        renta_clp_liquida=3900000,
+        renta_declarada="CLP 2.500.000 líquidos",
+        renta_clp_liquida=2500000,
     )
 
     assert sincronizar(raiz) == [id_]
@@ -68,8 +68,8 @@ def test_agrega_las_confirmadas_con_el_status_por_defecto_y_sus_datos(raiz, tmp_
         "Empresa 1",
         "Portal Ejemplo",
     )
-    assert fila["renta_clp_liquida"] == "3900000"
-    assert fila["renta_declarada"] == "CLP 3.900.000 líquidos"
+    assert fila["renta_clp_liquida"] == "2500000"
+    assert fila["renta_declarada"] == "CLP 2.500.000 líquidos"
     assert fila["status"] == STATUS_POR_DEFECTO == "Postulado sin validar"
     assert (fila["fit_tengo"], fila["fit_quiero"]) == ("80.0", "60.0")
     assert fila["brecha_principal"] == "Brecha 1"
@@ -210,7 +210,7 @@ def test_cli_confirmar_actualiza_la_planilla_sin_pedirlo(tmp_path):
         "cv": str(cv),
         "juicios": juicios,
         "aprobacion": "usuario",
-        "renta_declarada": "USD 4.750 brutos mensuales",
+        "renta_declarada": "USD 3.100 brutos mensuales",
     }
     intento = cli("postulacion", "intentar", id_, entrada=json.dumps(solicitud))
     assert intento.returncode == 0, intento.stderr
@@ -228,7 +228,83 @@ def test_cli_confirmar_actualiza_la_planilla_sin_pedirlo(tmp_path):
     assert (fila["id"], fila["status"], fila["renta_declarada"]) == (
         id_,
         STATUS_POR_DEFECTO,
-        "USD 4.750 brutos mensuales",
+        "USD 3.100 brutos mensuales",
     )
     assert fila["renta_clp_liquida"] == ""
     assert cli("planilla", "sync").stdout.strip() == "[]"
+
+    assert (
+        cli(
+            "planilla",
+            "accionables",
+            id_,
+            entrada="Completar la prueba: https://prueba.example.com/x\n",
+        ).returncode
+        == 0
+    )
+    assert _leer(raiz)[0]["accionables"] == "Completar la prueba: https://prueba.example.com/x"
+    assert cli("planilla", "accionables", "no-existe", entrada="x").returncode == 1
+
+
+def test_status_va_despues_de_empresa_y_accionables_despues_de_status():
+    assert COLUMNAS[3:6] == ("empresa", "status", "accionables")
+
+
+def test_reordena_y_completa_un_archivo_con_el_orden_anterior_sin_perder_datos(raiz, tmp_path):
+    id_ = _postulada(raiz, tmp_path, 1)
+    sincronizar(raiz)
+    (nueva,) = _leer(raiz)
+    antiguas = [c for c in COLUMNAS if c != "accionables"]
+    antiguas.remove("status")
+    antiguas.insert(antiguas.index("url") + 1, "status")
+    with (raiz / ARCHIVO).open("w", encoding="utf-8-sig", newline="") as f:
+        escritor = csv.DictWriter(f, fieldnames=[*antiguas, "mi_columna"])
+        escritor.writeheader()
+        escritor.writerow(
+            {
+                **{c: nueva[c] for c in antiguas},
+                "status": "Postulación aprobada",
+                "mi_columna": "dato mío",
+            }
+        )
+
+    assert sincronizar(raiz) == []
+
+    with (raiz / ARCHIVO).open(encoding="utf-8-sig", newline="") as f:
+        lector = csv.DictReader(f)
+        assert lector.fieldnames == [*COLUMNAS, "mi_columna"]
+        (fila,) = list(lector)
+    assert (fila["id"], fila["status"], fila["accionables"], fila["mi_columna"]) == (
+        id_,
+        "Postulación aprobada",
+        "",
+        "dato mío",
+    )
+
+
+def test_poner_accionables_solo_cambia_esa_celda(raiz, tmp_path):
+    primera = _postulada(raiz, tmp_path, 1)
+    segunda = _postulada(raiz, tmp_path, 2)
+    sincronizar(raiz)
+    antes = _leer(raiz)
+
+    poner_accionables(raiz, segunda, "  Hacer la prueba: https://prueba.example.com/y  ")
+
+    despues = {f["id"]: f for f in _leer(raiz)}
+    assert despues[segunda]["accionables"] == "Hacer la prueba: https://prueba.example.com/y"
+    assert despues[primera] == next(f for f in antes if f["id"] == primera)
+    assert {k: v for k, v in despues[segunda].items() if k != "accionables"} == {
+        k: v for k, v in next(f for f in antes if f["id"] == segunda).items() if k != "accionables"
+    }
+
+    poner_accionables(raiz, segunda, "")
+    assert {f["id"]: f for f in _leer(raiz)}[segunda]["accionables"] == ""
+
+
+def test_poner_accionables_rechaza_lo_que_no_existe(raiz, tmp_path):
+    with pytest.raises(ValueError, match="planilla sync"):
+        poner_accionables(raiz, "x", "algo")
+    _postulada(raiz, tmp_path, 1)
+    sincronizar(raiz)
+    with pytest.raises(ValueError, match="no está"):
+        poner_accionables(raiz, "no-existe", "algo")

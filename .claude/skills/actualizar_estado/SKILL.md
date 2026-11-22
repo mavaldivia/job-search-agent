@@ -65,6 +65,8 @@ Traducir lo que el usuario cuenta, sin interpretar de más:
 
 Mostrar el estado resultante (`ver`) y preguntar si hay algo más que registrar en esa u otra postulación.
 
+Si lo que el usuario cuenta trae un paso siguiente (completar una prueba, responder un formulario, una entrevista con fecha), anotarlo en la columna `accionables` de `postulaciones.csv` con `python -m agente0 planilla accionables <id>` (texto por stdin: qué falta, fecha límite si la hay y el enlace tal como lo dio el usuario). Al cumplirse, o si lo que viene cambia, reescribirlo o limpiarlo con texto vacío. Nunca inventar un enlace ni un plazo.
+
 ## Formato de las preguntas
 
 - Cada pregunta de `AskUserQuestion` es autocontenida: lleva la postulación (empresa, cargo, estado), lo que se registraría y qué cambia con cada opción, sin depender del texto anterior.

@@ -55,7 +55,8 @@ python -m agente0 recordatorio pendientes   # casos con la ventana vencida; tamb
 python -m agente0 cv calibrar cv.tex 2        # fija los límites por bloque de un CV (2 páginas)
 python -m agente0 cv verificar cv.tex limites.json   # revisa tamaño, páginas, fuentes y extracción de texto
 python -m agente0 postulacion crear < vacante.json   # registra una postulación; luego ver | intentar | confirmar | fallido | evento | recompensar | finalizar <id>
-python -m agente0 planilla sync        # agrega a `postulaciones.csv` las postulaciones confirmadas que falten, con el status «Postulado sin validar»; las filas existentes no se tocan
+python -m agente0 planilla sync        # agrega a `postulaciones.csv` las postulaciones confirmadas que falten, con el status «Postulado sin validar» (columnas `status` y `accionables` tras `empresa`); las filas existentes no se tocan; también accionables <id> (texto por stdin: lo que viene, con su enlace)
+python -m agente0 privacidad           # busca datos del usuario (RUT, correos, fechas, montos, nombre) en lo versionado y sale con error si los hay; un hook la corre antes de git commit y git push
 python -m agente0 respuestas listar   # respuestas tipo vigentes; también pendientes | ver | versiones | guardar | revisar
 python -m agente0 configuracion ver   # configuración vigente, con los valores iniciales de priorización; también editar (cambio parcial validado)
 python -m agente0 autonomia matriz 75  # qué se hace solo y qué se aprueba en un nivel; también evaluar <id> | aviso 100

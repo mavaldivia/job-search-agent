@@ -14,6 +14,7 @@ from agente0 import (
     oportunidades,
     planilla,
     postulaciones,
+    privacidad,
     ranking,
     recordatorios,
     renta,
@@ -23,7 +24,7 @@ from agente0 import (
     simulacion,
 )
 from agente0.cv_limites import calibrar, cargar_limites, verificar
-from agente0.datos import DatosError, cargar_configuracion, crear_estructura, datos_dir
+from agente0.datos import REPO, DatosError, cargar_configuracion, crear_estructura, datos_dir
 from agente0.revisiones import Revision, fecha_ultima_revision, registrar_revision
 
 USO = (
@@ -32,6 +33,8 @@ USO = (
     " | cv calibrar <archivo.tex> <paginas> | cv verificar <archivo.tex> <limites.json>"
     " | postulacion crear | postulacion ver|intentar|confirmar|fallido|evento|recompensar|finalizar <id> (JSON por stdin salvo ver y recompensar)"
     " | planilla sync (agrega a postulaciones.csv las postulaciones confirmadas que falten)"
+    " | planilla accionables <id> (texto por stdin; vacío la limpia)"
+    " | privacidad [--hook] [<repo>] (busca datos del usuario en lo versionado; sale con error si los hay)"
     " | respuestas listar|pendientes | respuestas ver|versiones <categoria> [<variante>]"
     " | respuestas guardar|revisar (JSON por stdin)"
     " | oportunidad registrar (JSON por stdin) | oportunidad listar [ESTADO] | oportunidad ver <id>"
@@ -60,6 +63,11 @@ def main(argv: list[str]) -> int:
         return _postulacion(argv[1], argv[2:])
     if argv == ["planilla", "sync"]:
         return _planilla()
+    if argv[:2] == ["planilla", "accionables"] and len(argv) == 3:
+        return _planilla_accionables(argv[2])
+    if argv[:1] == ["privacidad"] and len([a for a in argv[1:] if a != "--hook"]) <= 1:
+        otros = [a for a in argv[1:] if a != "--hook"]
+        return privacidad.ejecutar(Path(otros[0]) if otros else REPO, "--hook" in argv)
     if argv[:1] == ["respuestas"] and len(argv) >= 2:
         return _respuestas(argv[1], argv[2:])
     if argv[:1] == ["oportunidad"] and len(argv) >= 2:
@@ -181,6 +189,15 @@ def _planilla() -> int:
         print(f"error: {error}", file=sys.stderr)
         return 1
     print(json.dumps(agregadas, ensure_ascii=False))
+    return 0
+
+
+def _planilla_accionables(id_: str) -> int:
+    try:
+        planilla.poner_accionables(datos_dir(), id_, sys.stdin.read())
+    except (DatosError, ValueError, OSError) as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 1
     return 0
 
 
