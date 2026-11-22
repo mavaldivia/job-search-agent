@@ -35,7 +35,7 @@ El detalle completo está en [`CLAUDE.md`](CLAUDE.md).
 | `docs/investigacion_cv_ats.md` | Buenas prácticas de CV para ATS y reclutadores; documento vivo que actualiza la skill `investigar_cv` |
 | `docs/tracking/records.md` | Minutas de sesión (local, no versionado) |
 | `.claude/skills/` | Una skill por operación del menú (hoy `actualizar_perfil`, `investigar_cv`, `editar_respuestas`, `actualizar_postulaciones_potenciales`, `adaptar_cv`, `postular`, `actualizar_estado`, `actualizar_configuracion`, `investigar_mercado`, `revision_semanal` e `investigar_terminos`) |
-| `agente0/`, `tests/` | Código de apoyo (ruta de datos, estructura, ID de postulación, esquema de configuración, bitácora de revisiones del perfil, límites de tamaño de CV, registro de postulaciones, recordatorios, biblioteca de respuestas tipo, oportunidades, ranking, fuentes de búsqueda, compuerta de autonomía, edición de la configuración, simulación de configuración, conversión de renta, rangos de mercado, registro de búsquedas, carriles por portal, resumen semanal y medición del aprendizaje) y pruebas de integración |
+| `agente0/`, `tests/` | Código de apoyo (ruta de datos, estructura, ID de postulación, esquema de configuración, bitácora de revisiones del perfil, límites de tamaño de CV, registro de postulaciones, planilla de postulaciones, recordatorios, biblioteca de respuestas tipo, oportunidades, ranking, fuentes de búsqueda, compuerta de autonomía, edición de la configuración, simulación de configuración, conversión de renta, rangos de mercado, registro de búsquedas, carriles por portal, resumen semanal y medición del aprendizaje) y pruebas de integración |
 | `$AGENTE0_DATOS/` | Datos de cada usuario, fuera del repo (sugerida `Agente0_datos/<usuario>/`, junto al repo). `python -m agente0 init` crea la estructura |
 | `solo_lectura/` | Requisitos (flujo v1.1) y material previo; local, no versionado y no se edita |
 
@@ -55,6 +55,7 @@ python -m agente0 recordatorio pendientes   # casos con la ventana vencida; tamb
 python -m agente0 cv calibrar cv.tex 2        # fija los límites por bloque de un CV (2 páginas)
 python -m agente0 cv verificar cv.tex limites.json   # revisa tamaño, páginas, fuentes y extracción de texto
 python -m agente0 postulacion crear < vacante.json   # registra una postulación; luego ver | intentar | confirmar | fallido | evento | recompensar | finalizar <id>
+python -m agente0 planilla sync        # agrega a `postulaciones.csv` las postulaciones confirmadas que falten, con el status «Postulado sin validar»; las filas existentes no se tocan
 python -m agente0 respuestas listar   # respuestas tipo vigentes; también pendientes | ver | versiones | guardar | revisar
 python -m agente0 configuracion ver   # configuración vigente, con los valores iniciales de priorización; también editar (cambio parcial validado)
 python -m agente0 autonomia matriz 75  # qué se hace solo y qué se aprueba en un nivel; también evaluar <id> | aviso 100

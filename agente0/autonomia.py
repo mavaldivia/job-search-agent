@@ -64,6 +64,8 @@ class SolicitudEnvio(BaseModel):
     respuestas: list[RespuestaEnviada] = Field(default_factory=list)
     # Quién aprobó y qué, en el chat. Obligatoria cuando la compuerta pide aprobar el envío.
     aprobacion: str | None = None
+    renta_declarada: str | None = None
+    renta_clp_liquida: int | None = Field(default=None, gt=0)
 
 
 class Decision(BaseModel):
@@ -340,6 +342,8 @@ def preparar_envio(raiz: Path, id_: str, solicitud: SolicitudEnvio, ahora: datet
         nivel_efectivo=decision.nivel_efectivo,
         acciones=decision.acciones,
         condiciones=decision.condiciones,
+        renta_declarada=solicitud.renta_declarada,
+        renta_clp_liquida=solicitud.renta_clp_liquida,
     )
 
 

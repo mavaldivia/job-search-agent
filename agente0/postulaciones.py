@@ -87,6 +87,9 @@ class Envio(BaseModel):
     nivel_efectivo: int | None = None
     acciones: dict[Accion, Modo] = Field(default_factory=dict)
     condiciones: list[Condicion] = Field(default_factory=list)
+    # Renta declarada, para `postulaciones.csv`: el texto tal como salió y, si aplica, su equivalente líquido en CLP.
+    renta_declarada: str | None = None
+    renta_clp_liquida: int | None = Field(default=None, gt=0)
 
     @field_validator("autonomia")
     @classmethod

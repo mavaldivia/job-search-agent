@@ -2,6 +2,16 @@
 
 Formato: qué se eligió, qué se descartó, por qué. No volver a proponer lo descartado sin un motivo nuevo.
 
+## 2026-11-22 — B27: planilla de postulaciones con status de validación
+
+- **Contexto**: el usuario 1 pidió un `postulaciones.csv` con rol, empresa, portal, sueldo solicitado en CLP líquidos y status de lo que el agente postuló, todo en «Postulado sin validar»: él valida cuáles contra el correo del portal (confirmación, datos por completar, pruebas) y la skill `postular` debe agregar cada postulación nueva con ese status.
+- **Elegido**: archivo `$AGENTE0_DATOS/postulaciones.csv` (utf-8 con BOM, coma) que el código **solo extiende**: una fila por postulación con `fecha_postulacion` (confirmada), con `status` y `notas` del usuario y sin tocar jamás las filas existentes, columnas que el usuario agregue incluidas. `status` es texto libre: el único valor que escribe el agente es «Postulado sin validar». Los fit salen de `ranking.puntuar` con la evaluación y los pesos vigentes al agregar la fila, y quedan congelados. La renta se guarda en la instantánea del envío (`renta_declarada` y `renta_clp_liquida`, opcionales) en vez de deducirla del texto de las respuestas. `postulacion confirmar` agrega la fila (no depende de que el agente se acuerde) y `planilla sync` repone lo que falte.
+- **Descartado**: (1) regenerar el archivo entero en cada corrida: pisaría el status que edita el usuario. (2) Columna `estado_agente` con el estado interno: se desactualiza sin tocar otras skills y el usuario solo necesita su status. (3) Extraer la renta con expresiones regulares del texto de las respuestas: cada portal la escribe distinto (CLP líquido, CLP bruto, USD bruto). (4) Un candado de archivo: `fcntl` no existe en Windows; la sincronización es idempotente y la siguiente corrida repone una fila perdida por carrera entre carriles.
+- **Alcance**: entran las confirmadas (`POSTULADO` en adelante). No entran las `PREPARADA`, las `ENVIO_INTENTADO` sin confirmar ni lo que el usuario postuló fuera del sistema (B26). La renta de las diez postulaciones anteriores se cargó una vez desde las respuestas enviadas, porque sus instantáneas son de solo lectura; en USD sin equivalente declarado en CLP queda en blanco.
+- **Condición para reabrir**: que el usuario quiera que el agente proponga o cambie el status (por ejemplo leyendo el correo), o más columnas calculadas que cambien con el tiempo.
+
+---
+
 ## 2026-11-21 — B20 y B23: fuentes nuevas y corrida acotada de LinkedIn (primera corrida con carriles)
 
 - **Decidido sin confirmación previa** (el usuario 1 pidió avanzar solo); provisorio, revisable por él. Ninguno de los dos ítems queda cerrado.

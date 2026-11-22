@@ -321,6 +321,7 @@ $AGENTE0_DATOS/
     cv/                            (CV adaptado)
     instantanea/<nnn>/             (B4, inmutable, una por intento de envío: cv.<ext>, envio.json con preguntas, respuestas literales, autonomía, aprobación y, desde B11, portal, nivel efectivo, acciones y cada condición con su resultado; evidencia.json y captura al confirmar)
     estadisticas.json              (derivable, recalculable)
+  postulaciones.csv                (B27: una fila por postulación confirmada con rol, empresa, portal, renta, fit y `status`; el agente solo agrega filas y el usuario edita `status` y `notas`)
   origen/                          (material de partida del onboarding, no confirmado)
   respaldos/                       (copias de seguridad que el usuario quiera guardar)
 ```

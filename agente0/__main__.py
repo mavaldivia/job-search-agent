@@ -12,6 +12,7 @@ from agente0 import (
     medicion,
     mercado,
     oportunidades,
+    planilla,
     postulaciones,
     ranking,
     recordatorios,
@@ -30,6 +31,7 @@ USO = (
     " | recordatorio pendientes | recordatorio preguntado|operacion|ultima <experiencia|cv_base|configuracion|terminos>"
     " | cv calibrar <archivo.tex> <paginas> | cv verificar <archivo.tex> <limites.json>"
     " | postulacion crear | postulacion ver|intentar|confirmar|fallido|evento|recompensar|finalizar <id> (JSON por stdin salvo ver y recompensar)"
+    " | planilla sync (agrega a postulaciones.csv las postulaciones confirmadas que falten)"
     " | respuestas listar|pendientes | respuestas ver|versiones <categoria> [<variante>]"
     " | respuestas guardar|revisar (JSON por stdin)"
     " | oportunidad registrar (JSON por stdin) | oportunidad listar [ESTADO] | oportunidad ver <id>"
@@ -56,6 +58,8 @@ def main(argv: list[str]) -> int:
         return _recordatorio(argv[1:])
     if argv[:1] == ["postulacion"] and len(argv) in (2, 3) and argv[1] in ACCIONES_POSTULACION:
         return _postulacion(argv[1], argv[2:])
+    if argv == ["planilla", "sync"]:
+        return _planilla()
     if argv[:1] == ["respuestas"] and len(argv) >= 2:
         return _respuestas(argv[1], argv[2:])
     if argv[:1] == ["oportunidad"] and len(argv) >= 2:
@@ -154,6 +158,7 @@ def _postulacion(accion: str, resto: list[str]) -> int:
                 )
             elif accion == "confirmar":
                 resultado = postulaciones.confirmar_envio(raiz, resto[0], postulaciones.Evidencia.model_validate(datos))
+                planilla.sincronizar(raiz)
             elif accion == "fallido":
                 resultado = postulaciones.envio_fallido(raiz, resto[0], **datos)
             elif accion == "evento":
@@ -166,6 +171,16 @@ def _postulacion(accion: str, resto: list[str]) -> int:
     except (DatosError, ValueError, TypeError, OSError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 1
+    return 0
+
+
+def _planilla() -> int:
+    try:
+        agregadas = planilla.sincronizar(datos_dir())
+    except (DatosError, ValueError, OSError) as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 1
+    print(json.dumps(agregadas, ensure_ascii=False))
     return 0
 
 
