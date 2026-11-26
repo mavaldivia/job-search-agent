@@ -39,3 +39,28 @@
 - [ ] **B28 · Carril de BNE con sesión**: la preparación de punta a punta del carril de BNE sigue sin probar: en las dos corridas de B25 no había sesión del usuario en ese portal y el usuario 1 la dejó para después el 2026-11-22. Con sesión, validarla en el Chrome de la extensión, correr `python -m agente0 carriles` y preparar o postular las vacantes de ese carril según la compuerta (a 50 % todo envío va a su aprobación). (I:3 C:2 H:5 → 1.94)
   - Claude: validar la sesión de BNE, lanzar el carril y llevar cada vacante hasta la aprobación o el envío. Intento del 2026-11-23: el usuario creó la cuenta con ClaveÚnica y BNE respondió que no se activó; se deja fuera hasta que la active. Luego el usuario pudo entrar con ClaveÚnica (perfil al 66 %, sin experiencia, estudios ni idiomas), pero guardar una experiencia laboral desde el Chrome de la extensión responde `POST /api/postulante/<id>/experienciaLaboral` con 500 (probado dos veces el mismo día); BNE envía el perfil del portal, así que no se postula a las dos vacantes del carril de BNE hasta que el perfil se pueda completar.
   - Usuario: iniciar sesión a mano en BNE en el Chrome que controla la extensión, cuando quiera retomarlo.
+
+### Eficiencia — gasto por tipo de proceso
+
+> Objetivo: bajar el costo por proceso sin perder calidad. Línea base en `docs/tracking/consumo.md`. Cada prueba fija su criterio antes de correr y nada cambia de modelo o de comportamiento sin la aprobación del usuario 1.
+
+- [ ] **B30 · Comparación Haiku / Sonnet al buscar en una fuente** (aprobada el 2026-11-25): misma fuente, mismo tramo de fechas, cada subagente sobre su propia copia de los datos para que lo registrado por uno no figure como conocido para el otro. Brazos: Sonnet (como hoy), Haiku y, si el usuario lo quiere, Sonnet con esfuerzo bajo. Criterio para cambiar: no pierde ninguna vacante que Sonnet dejó sobre el umbral, respeta cupos y topes, no inventa datos de los avisos y cuesta menos de la mitad. (I:8 C:3 H:7 → 2.49)
+  - Claude: preparar las copias, elegir una fuente de riesgo bajo sin login (las corridas suman lecturas al mismo tope diario), lanzar los brazos, comparar vacantes, puntajes y costo, y presentar el resultado.
+  - Usuario: decidir si entra el tercer brazo y si se cambia el modelo según el resultado.
+- [ ] **B31 · Medir por vacante explorada y el CV hecho en el principal**: `consumo procesos` hoy no cruza el registro de búsquedas (costo por resultado visto y por aviso leído) ni separa el CV adaptado sin subagente. (I:5 C:2 H:7 → 2.96)
+  - Claude: agregar ambos al comando con sus pruebas.
+- [ ] **B32 · Reducir el contexto inicial**: cada sesión parte con ~54 k y cada subagente con ~37 k (19 % y 29 % de su gasto). Falta saber cuánto es de conectores y skills que este proyecto no usa y cuánto de las instrucciones. (I:7 C:2 H:5 → 2.96)
+  - Claude: desglosar, mover a `done.md` el historial del párrafo de estado de `CLAUDE.md` y medir antes y después.
+  - Usuario: correr `/context` en una sesión nueva y desactivar los conectores que no use en este proyecto.
+- [ ] **B33 · Comparación Haiku / Sonnet en investigación web sin sesión** (sueldos, fuentes y términos): mismo rol y mercado en ambos. Criterio: rangos consistentes, fuentes que existen y dicen lo citado, y menor costo. (I:4 C:2 H:4 → 2.00)
+  - Claude: correr la comparación cuando venza un rango o toque renovar términos, abriendo las fuentes citadas.
+  - Usuario: aprobar el cambio de modelo si cumple.
+- [ ] **B34 · Rediseñar la búsqueda según lo que rinde** [dep: B30, B31]: frecuencia por fuente según vacantes sobre el umbral por dólar, y separar descubrir (modelo barato, si B30 lo permite) de puntuar contra el perfil (Sonnet, sin navegador). (I:7 C:4 H:5 → 1.48)
+  - Claude: tabla de rendimiento por fuente y propuesta con su costo estimado.
+  - Usuario: aprobar qué fuentes bajan de frecuencia.
+- [ ] **B35 · Una operación por sesión**: comparar el costo de postular en una sesión limpia contra una larga y, si rinde, que el agente proponga `/clear` al terminar cada operación del menú. (I:8 C:2 H:5 → 3.16)
+  - Claude: medir las próximas postulaciones y ajustar las skills si se confirma.
+  - Usuario: hacer `/clear` cuando se le proponga y no retomar sesiones tras pausas largas.
+- [ ] **B36 · Compactación anticipada** [dep: B35]: probar `CLAUDE_CODE_AUTO_COMPACT_WINDOW` en 200 k solo si las sesiones siguen pasando de ahí. Ahorro bruto máximo estimado ~9 %; riesgo de perder detalle a mitad de una postulación. (I:3 C:2 H:3 → 1.50)
+  - Claude: configurarlo en `.claude/settings.json`, nunca activo en la primera prueba durante un envío real, y comparar.
+  - Usuario: aprobar la prueba.

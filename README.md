@@ -35,7 +35,7 @@ El detalle completo está en [`CLAUDE.md`](CLAUDE.md).
 | `docs/investigacion_cv_ats.md` | Buenas prácticas de CV para ATS y reclutadores; documento vivo que actualiza la skill `investigar_cv` |
 | `docs/tracking/records.md` | Minutas de sesión (local, no versionado) |
 | `.claude/skills/` | Una skill por operación del menú (hoy `actualizar_perfil`, `investigar_cv`, `editar_respuestas`, `actualizar_postulaciones_potenciales`, `adaptar_cv`, `postular`, `actualizar_estado`, `actualizar_configuracion`, `investigar_mercado`, `revision_semanal` e `investigar_terminos`) |
-| `agente0/`, `tests/` | Código de apoyo (ruta de datos, estructura, ID de postulación, esquema de configuración, bitácora de revisiones del perfil, límites de tamaño de CV, registro de postulaciones, planilla de postulaciones, recordatorios, biblioteca de respuestas tipo, oportunidades, ranking, fuentes de búsqueda, compuerta de autonomía, edición de la configuración, simulación de configuración, conversión de renta, rangos de mercado, registro de búsquedas, carriles por portal, resumen semanal, medición del aprendizaje y gasto de tokens por sesión) y pruebas de integración |
+| `agente0/`, `tests/` | Código de apoyo (ruta de datos, estructura, ID de postulación, esquema de configuración, bitácora de revisiones del perfil, límites de tamaño de CV, registro de postulaciones, planilla de postulaciones, recordatorios, biblioteca de respuestas tipo, oportunidades, ranking, fuentes de búsqueda, compuerta de autonomía, edición de la configuración, simulación de configuración, conversión de renta, rangos de mercado, registro de búsquedas, carriles por portal, resumen semanal, medición del aprendizaje y gasto por sesión y tipo de proceso) y pruebas de integración |
 | `$AGENTE0_DATOS/` | Datos de cada usuario, fuera del repo (sugerida `Agente0_datos/<usuario>/`, junto al repo). `python -m agente0 init` crea la estructura |
 | `solo_lectura/` | Requisitos (flujo v1.1) y material previo; local, no versionado y no se edita |
 
@@ -71,6 +71,7 @@ python -m agente0 carriles             # reparte el Top en carriles por portal (
 python -m agente0 resumen semanal      # lo enviado y lo pendiente desde la última revisión semanal; también revisado (horas de esfuerzo)
 python -m agente0 medicion ventanas    # contactos por hora y tasa de contacto por ventana de 4 semanas; también respuestas (tasa por versión)
 python -m agente0 recordatorio pendientes   # casos vencidos al abrir el menú (experiencia, cv_base, configuracion, terminos); también ultima <caso>
-python -m agente0 consumo 5            # gasto de tokens de las últimas sesiones de Claude Code sobre el repo, por etapa y subagente
+python -m agente0 consumo 5            # gasto (USD de lista) de las últimas sesiones de Claude Code sobre el repo, por etapa y subagente
+python -m agente0 consumo procesos     # costo unitario por tipo de proceso y por postulación según portal y tamaño de formulario
 python -m pytest                       # pruebas de integración
 ```

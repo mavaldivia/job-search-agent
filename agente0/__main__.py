@@ -46,7 +46,7 @@ USO = (
     " | configuracion editar (JSON por stdin: cambios, confirmacion)"
     " | simulacion (JSON por stdin: cambios; no modifica la configuración)"
     " | carriles (plan de carriles por portal para postular en paralelo)"
-    " | consumo [N] (gasto de tokens de las últimas N sesiones, por etapa; 1 si no se indica)"
+    " | consumo [N] (gasto de las últimas N sesiones, por etapa; 1 si no se indica) | consumo procesos (costo por tipo)"
     " | resumen semanal [desde hasta] | resumen revisado (JSON por stdin: horas_esfuerzo, nota, desde y hasta opcionales)"
     " | medicion ventanas | medicion respuestas"
     " | mercado listar | mercado guardar (JSON por stdin) | mercado evaluar <id> (JSON por stdin: rol, seniority, mercado, presencialidad, evidencia)"
@@ -86,6 +86,8 @@ def main(argv: list[str]) -> int:
         return _simulacion()
     if argv == ["carriles"]:
         return _carriles()
+    if argv == ["consumo", "procesos"]:
+        return _consumo_procesos()
     if argv[:1] == ["consumo"] and len(argv) <= 2 and all(a.isdigit() and int(a) for a in argv[1:]):
         return _consumo(int(argv[1]) if argv[1:] else 1)
     if argv[:1] == ["resumen"]:
@@ -117,6 +119,20 @@ def _consumo(cantidad: int) -> int:
         print(f"error: {error}", file=sys.stderr)
         return 1
     print(json.dumps(sesiones, ensure_ascii=False, indent=1))
+    return 0
+
+
+def _consumo_procesos() -> int:
+    try:
+        datos = datos_dir()
+    except DatosError:
+        datos = None  # sin datos del usuario no se pueden cruzar las postulaciones
+    try:
+        resultado = consumo.por_proceso(REPO, datos)
+    except (ValueError, OSError) as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 1
+    print(json.dumps(resultado, ensure_ascii=False, indent=1))
     return 0
 
 

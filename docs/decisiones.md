@@ -2,6 +2,17 @@
 
 Formato: qué se eligió, qué se descartó, por qué. No volver a proponer lo descartado sin un motivo nuevo.
 
+## 2026-11-25 — Gasto por tipo de proceso: dónde se va y qué se propone
+
+- **Contexto**: el usuario 1 pidió el costo por proceso y evaluar si algo puede correr en Haiku. Medido sobre todo el historial local, en USD de lista (no es lo que descuenta el plan): ~215, ~70 % del agente principal. En el principal: 42 % releer caché, 34 % escribirla y 23 % salida; 48 % en turnos con más de 200 k de contexto; ~10 % en reescrituras completas de caché tras pausas de más de una hora; 62 % del gasto principal fue en sesiones que editaban código o skills (construir, no operar). Costos unitarios en `docs/tracking/consumo.md`.
+- **Corrección**: la fórmula del comando pesaba la lectura de caché de Sonnet 5.5 en 0,1x (es 0,05x) y no distinguía modelos. Ahora usa precios de lista por modelo.
+- **Haiku, hecho técnico**: el `model:` de un `SKILL.md` solo aplica cuando el usuario escribe `/nombre`; si Claude invoca la skill, la sesión conserva su modelo. Para usar Haiku hay que lanzarlo como subagente con `model: haiku` (o `context: fork`).
+- **Propuesto, sin aprobar**: (A) Haiku en la investigación web sin sesión de portales (sueldos, fuentes, términos); (B) prueba comparada en una fuente de búsqueda antes de decidir; (C) compactar antes (`CLAUDE_CODE_AUTO_COMPACT_WINDOW`): ahorro bruto máximo ~9 % con 200 k y ~14 % con 150 k, con riesgo de perder detalle a mitad de una postulación (no se recomienda por ahora).
+- **Aprobado** (2026-11-25): la comparación Haiku/Sonnet. (A) no se aplica sin comparar antes. Las pruebas quedan en la sección «Eficiencia» de `docs/tracking/todos.md` (B30 a B36).
+- **No se propone**: Haiku en `postular`, `adaptar_cv` ni el revisor (siguen valiendo las razones del 2026-11-23: envío irreversible y veracidad).
+
+---
+
 ## 2026-11-25 — Autoeficiencia continua como regla de trabajo
 
 - **Elegido** (pedido del usuario 1): medir el gasto en cada sesión, dejarlo en `docs/tracking/consumo.md` y mejorar lo más caro; regla en `CLAUDE.md`.
