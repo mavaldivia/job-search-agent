@@ -2,6 +2,15 @@
 
 Formato: qué se eligió, qué se descartó, por qué. No volver a proponer lo descartado sin un motivo nuevo.
 
+## 2026-11-25 — Autoeficiencia continua como regla de trabajo
+
+- **Elegido** (pedido del usuario 1): medir el gasto en cada sesión, dejarlo en `docs/tracking/consumo.md` y mejorar lo más caro; regla en `CLAUDE.md`.
+- **Línea base** (transcripts del 19 al 26 de noviembre, UTC; equivalentes según la fórmula de la entrada del 2026-11-24): ~138 M, ~97 M del agente principal y ~41 M de subagentes. Una sesión principal de 255 turnos costó ~7,3 M (contexto máximo 343 k); una de 34 turnos, ~0,9 M. El contexto inicial es de ~50 k a 54 k.
+- **Límites**: el agente no corre entre sesiones; lo aprendido solo persiste si queda escrito.
+- **Comando**: `python -m agente0 consumo [N]` lee los transcripts locales; la etapa de cada turno es la última skill o comando invocado (aproximado) y cada subagente se carga a la etapa que lo lanzó. Cierra lo que quedó abierto el 2026-11-24.
+
+---
+
 ## 2026-11-24 — B12: primera medición de gasto por etapa y lo que dejó una sesión de búsqueda y dos postulaciones
 
 - **Contexto**: el usuario 1 pidió medir cuánto consume cada etapa. Se midió con el campo `usage` de cada turno en los transcripts locales (principal y `subagents/agent-*.jsonl`), con un script fuera del repo; «equivalente» = entrada + 2x escritura de caché de 1 h + 0,1x lectura de caché + 5x salida (aproximado, no es lo que descuenta el plan). La sesión (menú, búsqueda en 10 fuentes con subagentes, una postulación por LinkedIn y otra por Trabajando.com) sumó ~13,9 M equivalentes: ~4,6 M el agente principal y ~9,3 M los 20 subagentes.
