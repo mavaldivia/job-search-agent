@@ -78,11 +78,13 @@ def resumir(raiz: Path, desde: date | None = None, hasta: date | None = None) ->
         desde, hasta = desde or pendiente[0], hasta or pendiente[1]
     enviadas, por_verificar, en_cola, contactos = [], [], [], []
     otros = {tipo: 0 for tipo in HITOS}
+    # Una PREPARADA cuya vacante se descartó o cerró ya no espera nada del usuario.
+    fuera = {o.id for o in oportunidades.listar(raiz) if o.estado in ("DESCARTADO", "CERRADO")}
     for p in postulaciones.listar(raiz):
         eventos = postulaciones.eventos_de(raiz, p.id)
         if p.estado == "ENVIO_INTENTADO":
             por_verificar.append(p.id)
-        elif p.estado == "PREPARADA":
+        elif p.estado == "PREPARADA" and p.id not in fuera:
             en_cola.append(p.id)
         confirmado = next((e for e in eventos if e.tipo == "CAMBIO_ESTADO" and e.estado == "POSTULADO"), None)
         if confirmado is not None and desde <= _dia(confirmado.fecha) <= hasta:

@@ -10,7 +10,7 @@ Agente que apoya y automatiza la búsqueda laboral de cualquier persona que quie
 
 1. **Inicio**: primera vez, onboarding; si no, menú.
 2. **Operaciones**: actualizar perfil, postulaciones potenciales, estado de una postulación, CV base (con investigación ATS), configuración (incluida la autonomía) y respuestas tipo.
-3. **Subflujo de postulación**: adaptar el CV, compuerta de autonomía, postular por navegación web, marcar "postulado" solo con confirmación y guardar el detalle.
+3. **Subflujo de postulación**: adaptar el CV, compuerta de autonomía, postular por navegación web, marcar "postulado" solo con confirmación y guardar el detalle. Si para avanzar en el formulario hace falta algo que solo puede hacer el usuario (aceptar privacidad o términos, crear cuenta, iniciar sesión), se le pide antes de adaptar el CV.
 
 ## Reglas principales
 

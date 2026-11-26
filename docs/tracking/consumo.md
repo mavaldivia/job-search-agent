@@ -24,3 +24,4 @@ En USD a precio de lista por modelo (no es lo que descuenta el plan; sirve para 
 |---|---|---|---|
 | 19–25 nov (línea base) | todo el historial | ~215 (~70 % agente principal) | cortar sesiones tras una tarea pesada |
 | 25 nov (antes del cierre) | todos, actualizar_estado, guardar, medición por proceso y plan de eficiencia | 2,74 (sin subagentes; contexto máx 277 k) | comando por proceso con precios por modelo; falta evitar referencias grandes y partir el análisis en otra sesión |
+| 26 nov (carriles) | preparar y postular: 4 subagentes en 2 carriles y 1 revisor, 2 envíos confirmados con ayuda del usuario; todos (la sesión partió el 25) | 7,97 (3,30 subagentes; principal contexto máx 237 k) | revisar el destino externo y los procesos en curso antes de lanzar (aplicado); no adaptar el CV si el formulario está tras una aceptación del usuario (aplicado con su aprobación) |

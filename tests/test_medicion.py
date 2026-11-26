@@ -6,7 +6,7 @@ from datetime import date, timedelta
 
 import pytest
 
-from agente0 import configuracion, fuentes
+from agente0 import configuracion, fuentes, oportunidades
 from agente0.datos import ENV_VAR, REPO, crear_estructura
 from agente0.medicion import respuestas, ventanas
 from agente0.postulaciones import (
@@ -76,6 +76,17 @@ def test_el_resumen_cuenta_lo_enviado_en_el_periodo_y_como_se_resolvio(raiz):
     assert r.por_portal == {"Portal": 2}
     assert r.en_cola == [en_cola.id] and r.por_verificar == []
     assert r.revision_anterior is None
+
+
+def test_la_cola_del_resumen_omite_las_vacantes_descartadas(raiz):
+    vigencia = {"verificada_el": date.today().isoformat(), "fuente": "portal", "evidencia": "botón visible"}
+    o = oportunidades.registrar(raiz, "Empresa 9", "Cargo 9", "https://empleos.example.com/9", vigencia)
+    crear(raiz, o.empresa, o.cargo, o.url)
+    assert resumir(raiz).en_cola == [o.id]
+
+    oportunidades.cambiar_estado(raiz, o.id, "DESCARTADO", "No interesa.")
+
+    assert resumir(raiz).en_cola == []
 
 
 def test_el_resumen_deja_fuera_lo_de_otros_periodos_y_marca_lo_por_verificar(raiz):

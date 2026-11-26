@@ -10,3 +10,5 @@ Lecciones de postular por la solicitud sencilla de LinkedIn (riesgo alto, tope d
 - **Ya postulada**: en el listado, la etiqueta «Solicitados» o «Solicitud enviada» es «ya postulado» (también por fuera de Agente0). Cada clic en una tarjeta gasta una lectura del tope de búsqueda, incluso en una ya postulada.
 - **Confirmación**: el diálogo «Solicitud enviada» y, en la ficha, «Estado de la solicitud: Solicitud enviada».
 - `javascript_tool` bloquea devolver `src` de iframes y URLs con parámetros.
+- **«Solicitar en el sitio web de la empresa»**: el destino real viene en el parámetro `url` del enlace `linkedin.com/safety/go/`; se lee con JS devolviendo solo host y ruta, sin hacer clic. El agente principal lo revisa antes de lanzar el subagente: si el destino exige cuenta propia sin sesión, no lo lanza y avisa al usuario.
+- **Portal propio de la empresa**: puede tener un botón «Postular» que llama directo a una función de envío; con sesión, un clic podría registrar la postulación sin vista previa. No pulsarlo antes de `postulacion intentar`.

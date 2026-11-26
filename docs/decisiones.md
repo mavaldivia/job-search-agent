@@ -2,6 +2,14 @@
 
 Formato: qué se eligió, qué se descartó, por qué. No volver a proponer lo descartado sin un motivo nuevo.
 
+## 2026-11-26 — B12: prueba con carriles reales
+
+- **Resultado**: dos carriles a la vez (portales corporativos y un portal de riesgo alto), un subagente por vacante (4 preparaciones y 1 revisor), sin choques de pestañas. Ninguna preparación llegó sola al envío: cada una se detuvo en algo que solo puede hacer el usuario (aceptar privacidad, crear cuenta) o que exige su aprobación. Con su intervención quedaron 2 envíos confirmados; en otra vacante el sitio avisó que ya existía una postulación y no se envió nada; una quedó para después.
+- **Elegido**: (1) antes de lanzar, el agente principal revisa en el perfil los procesos en curso con las empresas del lote (la compuerta no carga ese historial) y el destino externo del botón de postular. (2) Un envío hecho por el usuario sin evidencia a la vista queda `ENVIO_INTENTADO` y pasa a `POSTULADO` con la evidencia que informe después. (3) El resumen semanal deja fuera de la cola las `PREPARADA` cuya vacante está descartada o cerrada.
+- **Aprobado por el usuario 1 (2026-11-26)**: si para avanzar hace falta algo que solo puede hacer el usuario (aceptar privacidad o términos, crear cuenta, iniciar sesión) y se ve antes de adaptar el CV, se le pide primero y el CV se adapta después. Gasta menos en vacantes que suelta, a cambio de una ida y vuelta más. Descartado: seguir preparando todo antes de preguntar.
+- **Gasto**: USD 7,97 a precio de lista (5 subagentes 3,30; principal 4,66 con contexto máximo de 237 k), unos 4 por envío confirmado, sobre la mediana de 2,4.
+- **Condición para reabrir**: que otra corrida con carriles vuelva a terminar sin envíos propios, o que un portal bloquee por el ritmo.
+
 ## 2026-11-25 — Gasto por tipo de proceso: dónde se va y qué se propone
 
 - **Contexto**: el usuario 1 pidió el costo por proceso y evaluar si algo puede correr en Haiku. Medido sobre todo el historial local, en USD de lista (no es lo que descuenta el plan): ~215, ~70 % del agente principal. En el principal: 42 % releer caché, 34 % escribirla y 23 % salida; 48 % en turnos con más de 200 k de contexto; ~10 % en reescrituras completas de caché tras pausas de más de una hora; 62 % del gasto principal fue en sesiones que editaban código o skills (construir, no operar). Costos unitarios en `docs/tracking/consumo.md`.

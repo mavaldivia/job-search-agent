@@ -13,6 +13,7 @@ Lo lee el agente principal cuando va a postular a más de una vacante del Top. E
 
 ## Antes de lanzar
 
+- **Procesos en curso**: buscar en `perfil/perfil.md` (C12) las empresas del lote; la compuerta no carga ese historial. Si hay un proceso o una restricción, preguntar al usuario antes de crear la pestaña de esa empresa.
 - **Sesión**: abres y validas la sesión de cada portal una sola vez y lanzas solo los portales con sesión; a los demás les informas al usuario qué debe abrir. Así no se gasta un subagente en un portal al que no se puede entrar.
 - **Pestañas**: creas tú la pestaña de cada vacante justo antes de lanzar su subagente y se la entregas por `tabId`: con `tabs_context_mcp createIfEmpty` los subagentes se disputan la pestaña en blanco. Una pestaña que quedó en la vista previa esperando aprobación sigue abierta; la siguiente vacante del portal usa una nueva.
 - **Sin carril**: las vacantes de `sin_carril` (por ejemplo un portal corporativo sin fuente activa) se informan al usuario y no se postulan.
@@ -20,6 +21,7 @@ Lo lee el agente principal cuando va a postular a más de una vacante del Top. E
 
 ## Al recibir los reportes
 
+- **Aceptaciones pendientes**: las vacantes que se detuvieron antes de adaptar el CV se las muestras juntas al usuario (qué tiene que hacer, fit y brecha). Para las que haga, lanzas de nuevo su subagente en la pestaña que quedó; las que suelte no gastan CV.
 - **Planilla**: cada `postulacion confirmar` agrega su fila a `postulaciones.csv`; con subagentes a la vez puede perderse una fila por carrera, así que corres `python -m agente0 planilla sync` una vez al juntar los reportes y confirmas que cada `POSTULADO` del lote esté en el archivo. Nadie edita el `status` salvo el usuario.
 - **Archivos compartidos**: guardas tú los textos nuevos (`respuestas guardar`), la renta propuesta, la tabla de mercado y los factores de renta que vengan en los reportes, y anotas en `portales/<portal>.md` las lecciones nuevas de cada portal (sin datos del usuario: el repo es público). `ranking generar`, `fuentes` y la configuración también son solo tuyos.
 - **Cola de aprobación**: muestras al usuario la cola por portal, cada ítem con su resumen y `motivos`, y con el OK de cada envío lo completas tú en la pestaña dejada, o repites §2 a §4 de `SKILL.md` si la pestaña ya no existe. Portales sin vista previa o que envían el CV del perfil: ver su archivo en `portales/` (por ejemplo `laborum_trabajando.md`).
