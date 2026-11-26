@@ -76,6 +76,7 @@ Las lecciones de cada portal viven en `portales/` (en esta carpeta). Antes de le
 | Teamtailor | `portales/teamtailor.md` |
 | Aira | `portales/aira.md` |
 | Buk | `portales/buk.md` |
+| LinkedIn Jobs («Solicitud sencilla») | `portales/linkedin.md` |
 
 Un portal sin archivo se trabaja con las reglas de esta skill; al terminar, dejar la lección nueva en el reporte para que el agente principal cree su archivo.
 
