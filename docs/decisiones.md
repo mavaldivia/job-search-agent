@@ -2,6 +2,15 @@
 
 Formato: qué se eligió, qué se descartó, por qué. No volver a proponer lo descartado sin un motivo nuevo.
 
+## 2026-11-27 — Segunda corrida `/postular100`
+
+- **Resultado**: 5 envíos confirmados (2 con la sesión del usuario presente, 3 más tras desbloquear portales) y 1 sin verificar porque la sesión del portal expiró al enviar.
+- **Qué rindió**: pedir en una sola tanda, antes de preparar, lo que solo puede hacer el usuario (sesiones, renta, autorización para cambiar el CV del perfil). Con sesión, los portales de riesgo bajo salieron solos.
+- **Hecho bajo delegación explícita del usuario en el chat, provisorio**: en un formulario al que ya había dado paso, y pidiendo no depender de él, el agente armó las respuestas abiertas solo con datos confirmados del perfil (brechas dichas) y eligió el valor conservador en los controles que el perfil no responde. La skill sigue exigiendo aprobación de textos nuevos: no cambia.
+- **Decidido sin confirmación, provisorio**: no postular fuera del Top aunque quedaban cupos. Descartado: regenerar el ranking para meter las siguientes, porque son envíos irreversibles fuera de lo configurado y casi todas piden una autorización nueva.
+- **Aprendido**: un portal puede registrar el envío y continuar en el sistema de la empresa con más preguntas; se vuelve a congelar la instantánea antes del segundo formulario.
+- **Condición para reabrir**: que el usuario quiera que una corrida siga más allá del Top o que las respuestas abiertas se envíen sin su revisión como regla.
+
 ## 2026-11-26 — Skill `/postular100`: autonomía 100 % solo por corrida
 
 - **Elegido**: skill `postular100` (buscar, ranking y postular al Top) que muestra el aviso de D12, pide confirmación en cada corrida, activa 100 % y al terminar vuelve al nivel previo.

@@ -72,6 +72,7 @@ Las lecciones de cada portal viven en `portales/` (en esta carpeta). Antes de le
 |---|---|
 | Get on Board | `portales/getonboard.md` |
 | Computrabajo | `portales/computrabajo.md` |
+| Chiletrabajos | `portales/chiletrabajos.md` |
 | Laborum, Trabajando.com | `portales/laborum_trabajando.md` |
 | Himalayas (y el ATS de empresa al que lleva, por ejemplo Greenhouse) | `portales/himalayas.md` |
 | Teamtailor | `portales/teamtailor.md` |
@@ -98,7 +99,7 @@ Avanzar paso a paso. En cada uno: leer los campos y proponer el texto literal co
 - **Lo que el usuario responde para un formulario** (un tramo de años, el nivel de una herramienta, ajustes para la entrevista): se guarda en `perfil.md` con fecha y «dicho por el usuario», para no volver a preguntarlo.
 - **Formulario a medias en otra sesión**: una pestaña de una sesión de Chrome anterior (por ejemplo tras `/clear`) no se puede leer ni controlar. Si el usuario avanzó el formulario ahí, se rehace en una pestaña nueva; conviene terminar cada vacante en la sesión que la prepara.
 - **Reintento tras un intento sin confirmar** (`no_postulada_antes` avisa «reintento»): antes de congelar de nuevo, revisar «Mis postulaciones» del portal en otra pestaña y confirmar que la vacante no figura enviada.
-- **Portales con particularidades** (Get on Board: aviso «Low match» y subida de un CV nuevo; Computrabajo, Himalayas, Laborum y Trabajando.com, Teamtailor, Aira y Buk): ver «Archivo por portal» en §2.
+- **Portales con particularidades** (Get on Board: aviso «Low match» y subida de un CV nuevo; Chiletrabajos, Computrabajo, Himalayas, Laborum y Trabajando.com, Teamtailor, Aira y Buk): ver «Archivo por portal» en §2.
 
 ## 4. Vista previa y envío
 

@@ -16,3 +16,5 @@ Lecciones de postular por la solicitud sencilla de LinkedIn (riesgo alto, tope d
 - **«Solicitar en el sitio web de la empresa»**: el destino real viene en el parámetro `url` del enlace `linkedin.com/safety/go/`; se lee con JS devolviendo solo host y ruta, sin hacer clic. El agente principal lo revisa antes de lanzar el subagente: si el destino exige cuenta propia sin sesión, no lo lanza y avisa al usuario.
 - **Destino externo en formularios de monday (`wkf.ms`)**: la lista «vacante a la que postulas» puede ser cerrada y no incluir la del aviso. Antes de adaptar el CV, abrirla y leer los `[role=option]`; si no está, detenerse (no elegir otra).
 - **Portal propio de la empresa**: puede tener un botón «Postular» que llama directo a una función de envío; con sesión, un clic podría registrar la postulación sin vista previa. No pulsarlo antes de `postulacion intentar`.
+- **Radios Yes/No de las preguntas**: el input puede medir 0x0 y no marcarse con clic por `ref`; clic por coordenadas sobre el círculo y verificar `checked`. En algunos avisos el paso de revisar no trae «Seguir a la empresa».
+
