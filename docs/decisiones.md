@@ -2,6 +2,15 @@
 
 Formato: qué se eligió, qué se descartó, por qué. No volver a proponer lo descartado sin un motivo nuevo.
 
+## 2026-11-26 — Skill `/postular100`: autonomía 100 % solo por corrida
+
+- **Elegido**: skill `postular100` (buscar, ranking y postular al Top) que muestra el aviso de D12, pide confirmación en cada corrida, activa 100 % y al terminar vuelve al nivel previo.
+- **Descartado**: dejar 100 % guardado en la configuración tras el comando (cualquier `/postular` posterior saldría sin las condiciones de preferencia); tomar la sola invocación como confirmación (cambiaría D12).
+- **Por qué**: decisión del usuario 1. Las reglas siempre vigentes, los topes por portal, los límites diarios y las pausas no cambian.
+- **Consecuencias**: el nivel previo queda en `configuracion/autonomia.jsonl`; `postular` lo restituye si una corrida quedó interrumpida. No hay código nuevo.
+- **Primera corrida (2026-11-26)**: 3 envíos confirmados de vacantes que ya estaban en el ranking. Aun a 100 %, casi todo lo demás se detuvo en algo del usuario (cuenta, sesión, renta, texto nuevo, términos) o en una pregunta excluyente. El usuario 1 pidió detenerse lo menos posible y que toda respuesta suya quede guardada.
+- **Pendiente de decidir**: (a) buscar solo si la última búsqueda tiene 3 días o más; (b) exigir una segunda pasada del revisor cuando pide cambios al CV (en un envío automático se corrigió y salió sin ella).
+
 ## 2026-11-26 — B12: prueba con carriles reales
 
 - **Resultado**: dos carriles a la vez (portales corporativos y un portal de riesgo alto), un subagente por vacante (4 preparaciones y 1 revisor), sin choques de pestañas. Ninguna preparación llegó sola al envío: cada una se detuvo en algo que solo puede hacer el usuario (aceptar privacidad, crear cuenta) o que exige su aprobación. Con su intervención quedaron 2 envíos confirmados; en otra vacante el sitio avisó que ya existía una postulación y no se envió nada; una quedó para después.

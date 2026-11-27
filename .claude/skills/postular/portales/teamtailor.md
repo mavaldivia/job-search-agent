@@ -2,4 +2,8 @@
 
 Lecciones de postular en portales de empleo de empresas hechos con esta plataforma. Léelo después de `SKILL.md` si el formulario es de Teamtailor.
 
+- **Privacidad implícita**: algunos avisos no traen casilla y el envío acepta la política de privacidad; pedir el permiso antes de enviar. El CV queda en los servidores apenas se selecciona.
+- **Banner de cookies sobre «Enviar solicitud»**: el clic cae en el banner y no envía, sin error. Rechazar las cookies innecesarias antes de enviar.
+- **Verificar la subida** por el nombre del archivo visible: `files.length` vuelve a 0 tras `file_upload`.
+
 - **Teamtailor (portales de empleo de empresas)**: «Enviar solicitud» abre el formulario en un diálogo de la misma página; `read_page` con filtro `all` lista los campos (no lo leas entero: el selector de países pesa decenas de miles de caracteres; usa `ref_id` del formulario con `filter: interactive`) y `form_input` los llena. Las preguntas de renta son una barra con paso de 500 (CLP y USD) cuyo valor real es el de la barra, no el del número que se ve: tras escribirlo, leer con `javascript_tool` el `input[type=range]` y comprobar que quedó el monto aprobado; si el paso lo mueve (por ejemplo 2.300 a 2.500), pedir al usuario que elija entre los dos valores permitidos antes de enviar. El CV se sube con `file_upload` sobre el campo de archivo (una copia con nombre no genérico, mismo hash) y el formulario trae casillas de privacidad obligatorias, que se marcan solo con el permiso expreso del usuario. Confirmación: página «Gracias por la solicitud». La oferta de «Conectar» posterior es crear una cuenta: no se toca.
